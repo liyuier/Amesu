@@ -1,23 +1,21 @@
-// 项目加载器：让用户【选择本地目录】作为工作目录（File System Access API）。
-// 读取 config.json + scenes/*.json + assets/，build 出可被引擎消费的 Project + resolveAsset。
+// 项目加载器：让用户【选择本地目录】作为工作目录。
+// 兼容性：优先用 File System Access API（仅安全上下文 HTTPS/localhost）；否则用 <input type=file webkitdirectory>（任何上下文、含内网 HTTP）。
+// 读取 config.json + scenes/*.json + assets/**，build 出可被引擎消费的 Project + resolveAsset(objectURL)。
 import { ref, type Ref } from 'vue';
 import type { Project, Story } from '@engine';
 
-// —— 最小化的 FileSystem 句柄类型（避免 any）——
-interface FSHandle { kind: 'file' | 'directory'; name: string; }
-interface FSFileHandle extends FSHandle { getFile(): Promise<File>; }
-interface FSDirHandle extends FSHandle { values(): AsyncIterableIterator<FSHandle>; getFileHandle(n: string): Promise<FSFileHandle>; getDirectoryHandle(n: string): Promise<FSDirHandle>; }
-
 export interface LoadedProject { project: Project; assetMap: Record<string, string>; resolveAsset: (src: string) => string; }
 
-async function readText(dir: FSDirHandle, name: string): Promise<string> {
-  const fh = await dir.getFileHandle(name); return await (await fh.getFile()).text();
-}
-async function walkAssets(dir: FSDirHandle, rel: string, map: Record<string, string>): Promise<void> {
-  for await (const ent of dir.values()) {
-    if (ent.kind === 'directory') await walkAssets(ent as FSDirHandle, rel + ent.name + '/', map);
-    else if (ent.kind === 'file') { map[rel + ent.name] = URL.createObjectURL(await (ent as FSFileHandle).getFile()); }
-  }
+// —— 最小化 FileSystem 句柄类型（避免 any）——
+interface FSEntity { kind: 'file' | 'directory'; name: string; }
+interface FSFile extends FSEntity { getFile(): Promise<File>; }
+interface FSDir extends FSEntity { values(): AsyncIterableIterator<FSEntity>; getFileHandle(n: string): Promise<FSFile>; getDirectoryHandle(n: string): Promise<FSDir>; }
+
+function relPath(f: File): string {
+  // webkitRelativePath 形如 '我的项目/scenes/demo.json' -> 去掉首段根目录
+  const p = f.webkitRelativePath || f.name;
+  const parts = p.split('/');
+  return parts.length > 1 ? parts.slice(1).join('/') : p;
 }
 
 export function useProject() {
@@ -25,47 +23,77 @@ export function useProject() {
   const name = ref('');
   const error = ref('');
 
-  async function openDir(): Promise<void> {
+  // —— 方式 A：file input（任何上下文，通用）——
+  async function openFromFiles(files: FileList | null): Promise<void> {
     error.value = '';
-    const w = window as unknown as { showDirectoryPicker?: () => Promise<FSDirHandle> };
-    if (!w.showDirectoryPicker) { error.value = '需要基于 Chromium 的浏览器（File System Access API）才能选择目录。'; return; }
+    if (!files || !files.length) { error.value = '没有选择文件。'; return; }
+    const list = Array.from(files);
+    name.value = list[0].webkitRelativePath.split('/')[0] || '项目';
+    const byRel: Record<string, File> = {};
+    for (const f of list) byRel[relPath(f)] = f;
     try {
-      const dir = await w.showDirectoryPicker();
-      const config = JSON.parse(await readText(dir, 'config.json'));
-
-      // 剧本：优先读取一个「整份 Story」文件（demo.json / story.json），否则把 scenes/*.json 合并为场景
+      const cfg = byRel['config.json']; if (!cfg) throw new Error('目录内缺少 config.json');
+      const config = JSON.parse(await cfg.text());
+      const sceneFiles = Object.entries(byRel)
+        .filter(([k]) => k.startsWith('scenes/') && k.endsWith('.json'))
+        .map(([, f]) => f);
       let story: Story | null = null;
-      let scenesDir: FSDirHandle | null = null;
-      try { scenesDir = await dir.getDirectoryHandle('scenes'); } catch { /* 无 scenes 目录 */ }
-      if (scenesDir) {
-        const files: string[] = [];
-        for await (const ent of scenesDir.values()) if (ent.kind === 'file' && ent.name.endsWith('.json')) files.push(ent.name);
-        const whole = files.find((f) => f === 'demo.json' || f === 'story.json');
-        if (whole) story = JSON.parse(await readText(scenesDir, whole)) as Story;
-        else {
-          const scenes: Record<string, unknown[]> = {};
-          const hasStart = files.some((f) => f === 'scene_start.json');
-          for (const n of files) {
-            const data = JSON.parse(await readText(scenesDir, n)) as Partial<Story> & Record<string, unknown>;
-            const sos = (data.scenes ?? { [n.replace('.json', '')]: [] }) as Record<string, unknown[]>;
-            Object.assign(scenes, sos);
-          }
-          story = { meta: config, start: hasStart ? 'scene_start' : 'scene_start', scenes, labels: {} };
+      const whole = sceneFiles.find((f) => /scenes\/(demo|story)\.json$/.test(relPath(f)));
+      if (whole) story = JSON.parse(await whole.text()) as Story;
+      else {
+        const m: Record<string, unknown[]> = {};
+        for (const f of sceneFiles) {
+          const data = JSON.parse(await f.text()) as Partial<Story> & { scenes?: Record<string, unknown[]>; [k: string]: unknown };
+          const nm = f.name.replace(/\.json$/, '');
+          Object.assign(m, (data.scenes ?? { [nm]: [] }) as Record<string, unknown[]>);
         }
+        story = { meta: config, start: 'scene_start', scenes: m, labels: {} };
       }
-
       const assetMap: Record<string, string> = {};
-      try { await walkAssets(await dir.getDirectoryHandle('assets'), '', assetMap); } catch { /* 无 assets 目录 */ }
-
-      const project: Project = {
-        meta: { ...config, resolution: config.resolution },
-        scripts: story ?? { meta: config, start: 'scene_start', scenes: {}, labels: {} },
-        characters: config.characters,
-      };
+      for (const [k, f] of Object.entries(byRel)) if (k.startsWith('assets/')) assetMap[k.slice(7)] = URL.createObjectURL(f);
+      const project: Project = { meta: { ...config, resolution: (config as { resolution?: unknown }).resolution }, scripts: story ?? { meta: config, start: 'scene_start', scenes: {}, labels: {} }, characters: (config as { characters?: unknown }).characters };
       loaded.value = { project, assetMap, resolveAsset: (src) => assetMap[src] ?? '' };
-      name.value = dir.name;
-    } catch (e) { error.value = '打开工作目录失败：' + ((e as Error).message || String(e)); }
+    } catch (e) { error.value = '读取工作目录失败：' + ((e as Error).message || String(e)); }
   }
 
-  return { loaded, name, error, openDir };
+  // —— 方式 B：File System Access API（仅安全上下文）——
+  async function openViaHandle(dir: FSDir): Promise<void> {
+    name.value = dir.name;
+    const readText = async (d: FSDir, n: string) => (await (await d.getFileHandle(n)).getFile()).text();
+    const walkAssets = async (d: FSDir, rel: string, map: Record<string, string>): Promise<void> => {
+      for await (const ent of d.values()) {
+        if (ent.kind === 'directory') await walkAssets(ent as FSDir, rel + ent.name + '/', map);
+        else if (ent.kind === 'file') map[rel + ent.name] = URL.createObjectURL(await (ent as FSFile).getFile());
+      }
+    };
+    const config = JSON.parse(await readText(dir, 'config.json'));
+    let story: Story | null = null;
+    let scenesDir: FSDir | null = null;
+    try { scenesDir = await dir.getDirectoryHandle('scenes'); } catch { /* 无 scenes 目录 */ }
+    if (scenesDir) {
+      const fs: string[] = [];
+      for await (const e of scenesDir.values()) if (e.kind === 'file' && e.name.endsWith('.json')) fs.push(e.name);
+      const whole = fs.find((f) => f === 'demo.json' || f === 'story.json');
+      if (whole) story = JSON.parse(await readText(scenesDir, whole)) as Story;
+      else { const m: Record<string, unknown[]> = {}; for (const n of fs) Object.assign(m, ((JSON.parse(await readText(scenesDir, n)) as Partial<Story>).scenes ?? { [n.replace(/\.json$/, '')]: [] })); story = { meta: config, start: 'scene_start', scenes: m, labels: {} }; }
+    }
+    const assetMap: Record<string, string> = {};
+    try { await walkAssets(await dir.getDirectoryHandle('assets'), '', assetMap); } catch { /* 无 assets */ }
+    const project: Project = { meta: { ...config, resolution: (config as { resolution?: unknown }).resolution }, scripts: story ?? { meta: config, start: 'scene_start', scenes: {}, labels: {} }, characters: (config as { characters?: unknown }).characters };
+    loaded.value = { project, assetMap, resolveAsset: (src) => assetMap[src] ?? '' };
+  }
+
+  // —— 入口：安全上下文且有 API 则用目录选择；否则触发 file input（App 里绑定的隐藏 input）——
+  function openDir(): void {
+    error.value = '';
+    const w = window as unknown as { isSecureContext?: boolean; showDirectoryPicker?: () => Promise<FSDir> };
+    if (w.isSecureContext && w.showDirectoryPicker) {
+      w.showDirectoryPicker().then(openViaHandle).catch(() => { /* 用户取消 */ });
+    } else {
+      const input = document.getElementById('dir-input') as HTMLInputElement | null;
+      if (input) input.click(); else error.value = '未找到目录选择入口。';
+    }
+  }
+
+  return { loaded, name, error, openDir, openFromFiles };
 }
