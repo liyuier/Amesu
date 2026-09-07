@@ -7,8 +7,9 @@ import fs from 'node:fs';
 import http from 'node:http';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-// 服务器端工作区：本开发机上的项目目录（供编辑器“打开开发环境目录”）
-const WORKSPACE = path.resolve(here, '..', 'workspace');
+// 服务端可浏览的工作区根（用户可在此范围内自由选目录）
+const BASE = path.resolve(here, '..'); // /srv/dev/VisualNovelEngine
+const START = 'workspace';             // 打开目录浏览器时的默认路径
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
@@ -18,16 +19,14 @@ const MIME: Record<string, string> = {
   '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf', '.ico': 'image/x-icon',
 };
 
-function sendJson(res: http.ServerResponse, obj: unknown): void {
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.end(JSON.stringify(obj));
-}
+function sendJson(res: http.ServerResponse, obj: unknown): void { res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.end(JSON.stringify(obj)); }
 function safeJoin(base: string, rel: string): string | null {
   const resolved = path.resolve(base, '.' + path.posix.normalize('/' + rel));
-  return resolved.startsWith(base + path.sep) ? resolved : null;
+  return resolved.startsWith(base + path.sep) || resolved === base ? resolved : null;
 }
+function parentRel(rel: string): string { const i = rel.lastIndexOf('/'); return i < 0 ? '' : rel.slice(0, i); }
 
-// 服务端项目 API：列出开发机上的项目、读取项目、转译脚本轨剧情、暴露素材
+// 服务端 API：浏览开发机目录(/api/fs/list) + 读取项目(/api/project /api/story) + 暴露素材(/api/asset)
 function projectApi(): Plugin {
   return {
     name: 'amesu-server-api',
@@ -36,55 +35,58 @@ function projectApi(): Plugin {
         const u = new URL(req.url || '/', 'http://x');
         const p = u.pathname, q = u.searchParams;
         try {
-          if (p === '/api/projects') {
-            const list = fs.readdirSync(WORKSPACE, { withFileTypes: true })
-              .filter((d) => d.isDirectory() && fs.existsSync(path.join(WORKSPACE, d.name, 'config.json')))
-              .map((d) => {
-                const scenes = fs.existsSync(path.join(WORKSPACE, d.name, 'scenes')) ? fs.readdirSync(path.join(WORKSPACE, d.name, 'scenes')) : [];
-                const track = scenes.some((n) => /\.(ts|js)$/.test(n)) ? 'script' : 'json';
-                return { name: d.name, track };
-              });
-            return sendJson(res, list);
+          if (p === '/api/fs/list') {
+            const rel = q.get('path') ?? START;
+            const dir = safeJoin(BASE, rel);
+            if (!dir || !fs.existsSync(dir)) { res.writeHead(404); res.end('not found'); return; }
+            const dirs = fs.readdirSync(dir, { withFileTypes: true })
+              .filter((d) => d.isDirectory() && !d.name.startsWith('.') && d.name !== 'node_modules' && d.name !== '.git')
+              .map((d) => ({ name: d.name, isProject: fs.existsSync(path.join(dir, d.name, 'config.json')), hasScenes: fs.existsSync(path.join(dir, d.name, 'scenes')) }))
+              .sort((a, b) => Number(b.isProject) - Number(a.isProject) || a.name.localeCompare(b.name));
+            return sendJson(res, { path: rel, parent: parentRel(rel), dirs });
           }
           if (p === '/api/project') {
-            const name = q.get('name') || '';
-            if (!safeJoin(WORKSPACE, name)) { res.writeHead(403); res.end('forbidden'); return; }
-            const dir = path.join(WORKSPACE, name);
-            const config = JSON.parse(fs.readFileSync(path.join(dir, 'config.json'), 'utf8'));
-            const scenes = fs.existsSync(path.join(dir, 'scenes')) ? fs.readdirSync(path.join(dir, 'scenes')) : [];
+            const rel = q.get('path') ?? '';
+            const dir = safeJoin(BASE, rel);
+            if (!dir) { res.writeHead(403); res.end('forbidden'); return; }
+            const cfgFile = path.join(dir, 'config.json');
+            if (!fs.existsSync(cfgFile)) { res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('该目录不是有效项目（缺 config.json）'); return; }
+            const config = JSON.parse(fs.readFileSync(cfgFile, 'utf8'));
+            const scenesDir = path.join(dir, 'scenes');
+            const scenes = fs.existsSync(scenesDir) ? fs.readdirSync(scenesDir) : [];
             const scriptFile = scenes.find((n) => /\.ts$|\.js$/.test(n));
             if (scriptFile) {
-              return sendJson(res, { name, track: 'script', meta: config, storyModule: `/api/story?name=${encodeURIComponent(name)}`, assetBase: `/api/asset/${name}/` });
+              const qs = new URLSearchParams({ path: rel });
+              return sendJson(res, { path: rel, track: 'script', meta: config, storyModule: '/api/story?' + qs.toString(), assetBase: '/api/asset?path=' + encodeURIComponent(rel) + '&file=' });
             }
             const jsonFile = scenes.find((n) => n.endsWith('.json')) || 'demo.json';
-            const story = JSON.parse(fs.readFileSync(path.join(dir, 'scenes', jsonFile), 'utf8'));
-            return sendJson(res, { name, track: 'json', meta: config, story, assetBase: `/api/asset/${name}/` });
+            const story = JSON.parse(fs.readFileSync(path.join(scenesDir, jsonFile), 'utf8'));
+            return sendJson(res, { path: rel, track: 'json', meta: config, story, assetBase: '/api/asset?path=' + encodeURIComponent(rel) + '&file=' });
           }
           if (p === '/api/story') {
-            const name = q.get('name') || '';
-            const dir = path.join(WORKSPACE, name, 'scenes');
-            const file = fs.readdirSync(dir).find((n) => /\.ts$|\.js$/.test(n));
-            const code = fs.readFileSync(path.join(dir, file), 'utf8');
-            const out = await transform(code, { loader: 'ts', format: 'esm', target: 'es2020' });
-            res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
-            res.end(out.code); return;
+            const rel = q.get('path') ?? '';
+            const dir = safeJoin(BASE, rel);
+            if (!dir) { res.writeHead(403); res.end('forbidden'); return; }
+            const scenesDir = path.join(dir, 'scenes');
+            const file = fs.readdirSync(scenesDir).find((n) => /\.ts$|\.js$/.test(n));
+            const out = await transform(fs.readFileSync(path.join(scenesDir, file), 'utf8'), { loader: 'ts', format: 'esm', target: 'es2020' });
+            res.setHeader('Content-Type', 'text/javascript; charset=utf-8'); res.end(out.code); return;
           }
-          if (p.startsWith('/api/asset/')) {
-            const rest = p.slice('/api/asset/'.length); const parts = rest.split('/'); const name = parts.shift() || '';
-            if (!name || !fs.existsSync(path.join(WORKSPACE, name, 'config.json'))) { res.writeHead(403); res.end('forbidden'); return; }
-            const base = path.join(WORKSPACE, name, 'assets');
-            const file = safeJoin(base, parts.join('/'));
-            if (!file) { res.writeHead(403); res.end('forbidden'); return; }
-            if (!fs.existsSync(file)) { res.writeHead(404); res.end('not found'); return; }
+          if (p === '/api/asset') {
+            const rel = q.get('path') ?? '';
+            const fileRel = q.get('file') ?? '';
+            const dir = safeJoin(BASE, rel);
+            if (!dir) { res.writeHead(403); res.end('forbidden'); return; }
+            const file = safeJoin(path.join(dir, 'assets'), fileRel);
+            if (!file || !fs.existsSync(file)) { res.writeHead(404); res.end('not found'); return; }
             res.setHeader('Content-Type', MIME[path.extname(file).toLowerCase()] || 'application/octet-stream');
             fs.createReadStream(file).pipe(res); return;
           }
           if (p === '/__amesu.js') {
             res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
-            res.end("export { story, loadStory, storyToStory } from '/src/engine/index.ts';");
-            return;
+            res.end("export { story, loadStory, storyToStory } from '/src/engine/index.ts';"); return;
           }
-        } catch (e) { /* 继续走 vite */ }
+        } catch (e) { /* 走 vite */ }
         next();
       });
     },
@@ -94,7 +96,7 @@ function projectApi(): Plugin {
 export default defineConfig({
   root: here,
   plugins: [vue(), projectApi()],
-  server: { host: '0.0.0.0', port: Number(process.env.PORT || 11491), fs: { allow: [here, path.resolve(here, '..')] } },
+  server: { host: '0.0.0.0', port: Number(process.env.PORT || 11491), fs: { allow: [here, BASE] } },
   build: { outDir: 'dist/app', rollupOptions: { input: path.join(here, 'index.html') } },
   resolve: { alias: { '@engine': path.join(here, 'src/engine/index.ts') } },
 });

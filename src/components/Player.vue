@@ -32,7 +32,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
     <div v-if="state.bg" class="ams-bg" :style="bgStyle"></div>
     <div class="ams-sprites">
       <img v-for="sp in state.sprites" v-show="sp.ready && sp.src" :key="sp.id" class="ams-sprite"
-           :src="sp.src" :data-id="sp.id" :style="spriteStyle(sp)" />
+           :src="sp.src" :data-id="sp.id" :style="spriteStyle(sp)" draggable="false" />
     </div>
     <div class="ams-fx"><span v-for="(d, i) in rain" :key="i" class="ams-drop" :style="dropStyle(d)"></span></div>
     <div class="ams-dialogue" :data-time="String(state.time)">
