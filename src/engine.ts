@@ -18,7 +18,7 @@ import { loadStory } from './story.js';
 import { clamp, lerp, ease, toMs, TAU } from './util.js';
 import { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from './placeholder.js';
 import { AudioManager } from './audio.js';
-import type { Story, CharacterDef, Task, EngineOptions, Directive } from './types.js';
+import type { Story, CharacterDef, Task, EngineOptions, Directive, EngineRunState, RainOverlay, SpriteRuntime, BgRuntime, CameraRuntime, SayRuntime, ChoiceRuntime, FadeRuntime, Project, Drawable, SceneState } from './types.js';
 
 
 const cx = (id) => id; // 占位，保持引用清晰
@@ -27,7 +27,7 @@ export function createEngine(project, options = {}) {
   return new Engine(project, options);
 }
 
-class Engine {
+export class Engine {
   // —— 运行时字段（声明以启用类型检查）——
   res!: { width: number; height: number };
   fps!: number;
@@ -40,28 +40,30 @@ class Engine {
   speed!: number;
   paused!: boolean;
   ended!: boolean;
-  state!: any;
+  state!: EngineRunState;
   activeTasks!: Task[];
-  overlays!: any[];
-  chars!: Map<string, any>;
-  bg!: any;
-  camera!: any;
-  lastSay!: any;
-  pendingChoice!: any;
-  fade!: any;
+  overlays!: RainOverlay[];
+  chars!: Map<string, SpriteRuntime>;
+  bg!: BgRuntime;
+  camera!: CameraRuntime;
+  lastSay!: SayRuntime | null;
+  pendingChoice!: ChoiceRuntime | null;
+  fade!: FadeRuntime;
   skipRequested!: boolean;
+  domUI = false;
+  _bgSrc = ""; // 当前背景的原始 src（供 DOM background-image 使用） // 当采用 DOM(Vue) 视图时，画布跳过 UI 层，由 DOM 呈现
   audio!: AudioManager;
   ctx!: CanvasRenderingContext2D;
   canvas!: HTMLCanvasElement;
   _listeners!: Record<string, Function[]>;
-  _imgCache!: Map<string, any>;
+  _imgCache!: Map<string, Drawable | null>;
   _running!: boolean;
   _lastNow!: number;
   _rafId!: number;
-  sfxCache?: any;
-  project!: any;
+  sfxCache?: Record<string, AudioBuffer | null>;
+  project!: Project;
 
-  constructor(project: any, options: EngineOptions = {}) {
+  constructor(project: Project, options: EngineOptions = {}) {
     const meta = project?.meta || {};
     this.res = options.resolution || meta.resolution || { width: 1280, height: 720 };
     this.fps = options.fps || meta.fps || 30;
@@ -131,7 +133,7 @@ class Engine {
   async _loadImage(src, kind) {
     if (this._imgCache.has(src)) return this._imgCache.get(src);
     const url = this._resolve(src);
-    const p = new Promise((resolve) => {
+    const p = new Promise<HTMLImageElement | null>((resolve) => {
       const img = new Image();
       img.onload = () => {
         if (kind === 'bg') resolve(img);
@@ -253,7 +255,7 @@ class Engine {
         case 'set': this._applySet(d); this._advanceIndex(); break;
         case 'include': this._advanceIndex(); break; // demo：no-op
         case 'if': {
-          const branch = this._evalCond(d.cond) ? (d.then || []) : (d.else || []);
+          const branch: Directive[] = this._evalCond(d.cond) ? ((d.then as Directive[]) || []) : ((d.else as Directive[]) || []);
           this._advanceIndex();
           if (branch.length) this.state.stack.push({ arr: branch, index: 0 });
           break;
@@ -266,7 +268,7 @@ class Engine {
           break;
         case 'parallel': {
           const tasks = [];
-          for (const child of d.children || []) {
+          for (const child of ((d.children as Directive[]) || [])) {
             const t = this._spawn(child);
             if (t) tasks.push(t);
           }
@@ -306,6 +308,7 @@ class Engine {
   }
 
   // ---------- 用户输入 ----------
+  choose(i: number) { if (this.pendingChoice) { this.pendingChoice.chosen = i; } }
   handleClick(x, y) {
     if (this.mode === 'deterministic') return false;
     this.audio.ensure();
@@ -372,11 +375,11 @@ class Engine {
   inspect() {
     const s = this.state.stack[this.state.stack.length - 1];
     const scene = s ? Object.keys(this.story.scenes).find((k) => this.story.scenes[k] === s.arr) : null;
-    const layerRows = [...this.chars.entries()].map(([id, c]) => ({
+    const layerRows: { id: string; kind: string; z?: number; opacity: number; pos?: number; sprite?: boolean; transition?: string }[] = [...this.chars.entries()].map(([id, c]) => ({
       id, kind: 'sprite', z: c.z, opacity: Math.round((c.opacity || 0) * 100) / 100, pos: c.xFrac,
       sprite: !!c.sprite,
     }));
-    if (this.bg.cur) layerRows.unshift({ id: 'bg', kind: 'bg', opacity: Math.round(this.bg.mix * 100) / 100, transition: 'fade' } as any);
+    if (this.bg.cur) layerRows.unshift({ id: 'bg', kind: 'bg', opacity: Math.round(this.bg.mix * 100) / 100, transition: 'fade' });
     return {
       scene, time: Math.round(this.time), mode: this.mode, speed: this.speed, paused: this.paused, ended: this.ended,
       index: s ? s.index : null, activeTasks: this.activeTasks.map((t) => t.kind),
@@ -385,6 +388,25 @@ class Engine {
       lastSay: this.lastSay ? { who: this.lastSay.who, text: this.lastSay.text, reveal: this.lastSay.reveal, len: this.lastSay.text.length } : null,
       pendingChoice: this.pendingChoice ? { chosen: this.pendingChoice.chosen, options: this.pendingChoice.options.map((o) => o.text) } : null,
       audio: { volume: this.audio.volume, muted: this.audio.muted },
+    };
+  }
+
+
+  // 返回当前演出状态的“快照”给 Vue/DOM 视图（元素级、类型化，无 any）
+  getScene(): SceneState {
+    const s = this.state.stack[this.state.stack.length - 1];
+    const scene = s ? (Object.keys(this.story.scenes).find((k) => this.story.scenes[k] === s.arr) ?? null) : null;
+    const sprites = [...this.chars.values()]
+      .map((c) => ({ id: c.id, expr: c.expr, pos: c.xFrac, z: c.z, opacity: c.opacity, flip: c.scaleX < 0, color: c.color, ready: !!c.sprite }))
+      .sort((a, b) => a.z - b.z);
+    return {
+      bg: this.bg.cur ? { src: this._bgSrc || '', mix: this.bg.mix } : null,
+      sprites,
+      say: this.lastSay ? { who: this.lastSay.who, text: this.lastSay.text, reveal: this.lastSay.reveal } : null,
+      choices: this.pendingChoice ? { chosen: this.pendingChoice.chosen, options: this.pendingChoice.options } : null,
+      effects: this.overlays.map((o, idx) => ({ key: String(idx), type: (o.effectName ? o.type + ':' + o.effectName : o.type), start: o.start, duration: o.duration, params: {} })),
+      vars: this.state.vars,
+      time: this.time, scene, ended: this.ended, mode: this.mode, speed: this.speed, paused: this.paused,
     };
   }
 
@@ -601,6 +623,7 @@ class Engine {
   }
 
   _applyBgStart(d) {
+    this._bgSrc = (d.src as string) || '';
     this.bg.prev = this.bg.cur;
     this._bg(d.src).then((img) => {
       this.bg.cur = img; this.bg.mix = 0;
@@ -614,8 +637,7 @@ class Engine {
     const color = d.color || cfg.color || '#8fd0ff';
     const frac = this._xPos(d.at);
     this._charSprite(d.id, d.expr, color).then((sprite) => {
-      const c = this.chars.get(d.id) || {};
-      const from = { ...c };
+      const from: Partial<SpriteRuntime> = this.chars.get(d.id as string) || {};
       this.chars.set(d.id, {
         id: d.id, sprite, expr: d.expr, color,
         xFrac: from.xFrac ?? frac, z: d.z ?? 10,
@@ -659,7 +681,7 @@ class Engine {
     const start = this.time;
     const params = d.params || {};
     const overlay = this._makeRain(start, duration, { ...params, count: params.count ?? 220 });
-    (overlay as any).effectName = d.name;
+    overlay.effectName = d.name;
     this.overlays.push(overlay);
   }
 
@@ -675,7 +697,7 @@ class Engine {
     return t;
   }
 
-  _makeRain(start, duration, p) {
+  _makeRain(start, duration, p): RainOverlay {
     const W = this.res.width, H = this.res.height;
     const drops = [];
     const n = p.count || 200;
@@ -706,7 +728,7 @@ class Engine {
       const m = cond.match(/^\s*([\w$]+)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/);
       if (m) {
         const a = this.state.vars[m[1]];
-        let b: any = m[3]; if (b.startsWith("'") || b.startsWith('"')) b = b.slice(1, -1); else b = Number(b);
+        let b: string | number = m[3]; if (b.startsWith("'") || b.startsWith('"')) b = b.slice(1, -1); else b = Number(b);
         switch (m[2]) { case '==': return a == b; case '!=': return a != b; case '>': return a > b; case '<': return a < b; case '>=': return a >= b; case '<=': return a <= b; }
       }
       return !!this.state.vars[cond];
@@ -746,9 +768,11 @@ class Engine {
 
     // UI（屏幕空间）
     this._drawFade(ctx, W, H);
-    this._drawDialogue(ctx, W, H);
-    this._drawChoice(ctx, W, H);
-    this._drawHud(ctx, W, H);
+    if (!this.domUI) { // DOM(Vue) 视图接管对白/选择/HUD；否则画布绘制（供导出/截图）
+      this._drawDialogue(ctx, W, H);
+      this._drawChoice(ctx, W, H);
+      this._drawHud(ctx, W, H);
+    }
   }
 
   _drawBg(ctx, W, H) {

@@ -13,10 +13,10 @@
 // 负责懒初始化 AudioContext、BGM 交叉淡化、短音效一次性播放、主音量/静音。
 
 export class AudioManager {
-  ctx!: any;
-  bgmNode!: any;
-  bgmGain!: any;
-  master!: any;
+  ctx!: AudioContext | null;
+  bgmNode!: AudioBufferSourceNode | null;
+  bgmGain!: GainNode | null;
+  master!: GainNode | null;
   volume = 1;
   muted = false;
   constructor() {
@@ -30,7 +30,8 @@ export class AudioManager {
 
   ensure() {
     if (!this.ctx) {
-      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      const AW = window as Window & { webkitAudioContext?: typeof AudioContext };
+      const AC = window.AudioContext || AW.webkitAudioContext;
       this.ctx = new AC();
       this.master = this.ctx.createGain();
       this.master.connect(this.ctx.destination);

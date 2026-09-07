@@ -16,7 +16,7 @@
 const D = (type, attrs = {}) => ({ type, ...attrs });
 
 class SceneBuilder {
-  _dirs!: any[];
+  _dirs!: Directive[];
   constructor(dirs) { this._dirs = dirs; }
   bg(src, o = {}) { this._dirs.push(D('bg', { src, ...o })); return this; }
   char(id, o = {}) { this._dirs.push(D('char', { id, ...o })); return this; }
@@ -41,7 +41,7 @@ class SceneBuilder {
 }
 
 class StoryBuilder {
-  _data!: any;
+  _data!: Story;
   constructor(meta) {
     this._data = { meta: meta || {}, start: '', scenes: {}, labels: {}, characters: {} };
   }
@@ -57,6 +57,8 @@ class StoryBuilder {
   characters(c) { this._data.characters = { ...this._data.characters, ...c }; return this; }
   build() { return this._data; }
 }
+
+import type { Directive, Story } from './types.js';
 
 export const story = {
   create(meta) { return new StoryBuilder(meta); },

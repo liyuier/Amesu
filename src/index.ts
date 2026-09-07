@@ -17,3 +17,4 @@ export { story, loadStory, storyToStory } from './story.js';
 export { Easing, clamp, lerp } from './util.js';
 export { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from './placeholder.js';
 export { AudioManager } from './audio.js';
+export { createPlayer, readScene } from './ui.js';
