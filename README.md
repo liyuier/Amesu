@@ -1,76 +1,59 @@
 # Amesu · 视觉小说演出引擎
 
-> 一个为「演出效果 / 视频素材」而生的、基于 Web 前端(TypeScript + Vue 3)的视觉小说演出引擎。
-> 你可能不是要做一个“能运行的游戏”，而是要一段**好看、可控、可复现的画面**——Amesu 把剧情编排成画面素材。
+> 一个原生 **Vite + Vue 3 + TypeScript** 的视觉小说演出引擎。可能你不是要做一个“游戏”，而是要一段**好看、可控、可复现的画面**。
 
 ## 架构分层（三件事，别混）
 
 | 层 | 是什么 | 在哪 |
 |----|--------|------|
-| **引擎核心** | 逻辑/状态/调度/指令/导出（框架无关，强类型） | `src/engine|commands|renderer|types|util|story|...` |
-| **播放器** | 把 `SceneState` 渲染成画面（交付物的内容） | `src/ui.ts`（全 DOM，可 F12 逐项检查） |
-| **可视化编辑器** | 预览 + 控制栏 + 元素检查器 + 场景编辑（外部工具） | `src/editor.ts`（Vue），dev-server 挂到 `/editor` |
-| **交付物(项目)** | = 播放器容器 + 场景数据 + 素材（**仅这么多**） | `workspace/demo/`（不入本仓库） |
+| **引擎核心** | 调度/时钟/交互/状态/导出；框架无关、强类型、无 `any` | `src/engine/`（core/commands/render/types/content/platform） |
+| **播放器** | 把 `SceneState` 渲染成【全 DOM】（交付物画面，可 F12 逐项检查） | `src/components/Player.vue`（Vue 第一公民） |
+| **可视化编辑器** | 预览 + 控制栏 + 元素检查器 + 场景编辑（外部工具，**原生 Vue**） | `index.html` + `src/App.vue` + `src/components/*.vue` |
+| **交付物项目** | 仅静态项目数据（=“游戏存档”，由引擎/编辑器加载执行） | `workspace/demo/`（config/scenes/assets） |
 
-> 交付物 `workspace/demo` 只有 `index.html`＋`style.css`＋`main.js`＋`config.json`＋`scenes/`＋`assets/`，无任何编辑器 UI；编辑器的一切（控制/检查/场景编辑）收在 `src/editor.ts`。
+> 编辑器完全由 **Vue（.vue SFC）** 驱动；引擎逻辑收在 `src/engine/` 子模块；**剧本支持 JS/TS 脚本与 JSON 双轨**。
 
-## 仓库内容（本仓库 = 引擎 + 编辑器）
+## 仓库内容（引擎 + 编辑器）
 
 ```
-src/                 TypeScript 源码（esbuild 构建 → dist ESM；tsc 0 错误、全程无 any）
-  index.ts           公开导出 / 类型出口
-  engine.ts          引擎核心（生命周期/调度/交互/输出/检查器）—— 类型化，无框架依赖
-  commands.ts        指令处理层（directive→任务/状态改写，Object.assign 挂到原型）
-  renderer.ts        画布导出渲染器（把 SceneState 绘到 canvas，供截图/录屏）
-  ui.ts              播放器（把 SceneState 渲染成【全 DOM】——这就是“交付物”的画面内容）
-  editor.ts          可视化编辑器（Vue IDE：控制栏/元素检查器/场景编辑），引擎的外部工具
-  index.ts / editor.ts(入口)  →  dist/index.js(交付物) / dist/editor.js(编辑器)
-  ui.ts              Vue 3 表现层（把 SceneState 渲染成【可被 F12 检查的 DOM 元素】）
-  types.ts           类型模型（Directive／Story／Project／SceneState／Runtime…）
-  util.ts            缓动/数学/时间
-  story.ts           内容 builder + JSON 装载/归一
-  placeholder.ts     默认素材（合成占位 + fallback）
-  audio.ts           WebAudio（BGM 交叉淡化/主音量/静音）
-tools/drive.mjs      CDP 自动化驱动（可自行操作演示页 / 验证）
-package.json         npm run build / watch / typecheck
-LICENSE              MIT
-NOTICE               版权与 Librian(MPL-2.0) 归属声明
+index.html             编辑器页（Vite 入口，服务在端口根）
+vite.config.ts         Vite + @vitejs/plugin-vue；publicDir 暴露交付物 /demo
+src/
+  main.ts              Vue 入口（createApp(App)）
+  App.vue              编辑器布局（左面板 + 右预览）
+  components/Player.vue 播放器（SceneState → 全 DOM）
+  components/Toolbar.vue 控制栏
+  components/Inspector.vue 元素检查器
+  story.demo.ts        用「类型安全 JS/TS API」定义剧本的示例（与 JSON 双轨）
+  style.css            编辑器 + 播放器样式
+  engine/              引擎库（框架无关、无 any、tsc 0 错误）
+    index.ts           引擎导出；core/、commands/、render/、types/、content/、platform/ 子目录
+tools/drive.ts         CDP 自动化驱动；tools/dev-server.ts（静态+SSE 热重载+编辑器页）
+dist/                  vite build → app/ ；npm run lib → engine.js
+LICENSE / NOTICE / package.json / tsconfig.json
 ```
 
-> `doc/`（设计/规格 + Librian 分析）与 `workspace/demo`（示例项目）在父项目 `/srv/dev/VisualNovelEngine` 下，**不在本 git 仓库内**。
-
-## 表现架构
-
-- **场景（背景/立绘/粒子/镜头）**：Canvas 合成，便于连续动画与对粒子/逐帧的控制。
-- **交互 UI（对白框/名字/正文/选项/HUD）**：**Vue 3 DOM 元素**——在 F12 里能看到 `.ams-dialogue`、`.ams-name`、`.ams-text`、`button.ams-choice`、`.ams-hud`，逐项可分析、可改样式。
-- **状态为真源**：引擎每帧产出类型化的 `SceneState`；`getScene()` 即快照。
-- **全 DOM 表现（可 F12 逐项检查）**：背景 `div.ams-bg`、立绘 `img.ams-sprite`、粒子 `span.ams-drop`、对白 `div.ams-dialogue`(→`.ams-name`/`.ams-text`)、选项 `button.ams-choice`、`div.ams-hud`——都是真实 DOM。
-- **双渲染器**：DOM 用于展示（可检查）；`renderer.ts` 把 SceneState 绘到画布用于**导出/录制**（`exportMode`）。
-- **Vue 编辑器可复用**：引擎保持框架无关，只暴露**指令式控制 API**（`createEngine` + `getScene`/`play`/`pause`/`seek`/`setSpeed`/`setMode`/`choose`/`handleClick`/`on('frame')`）。未来的可视化编辑器即另一个 Vue 消费者——直接读取 `getScene()`、调用控制 API 即可。
+> `doc/` 与 `workspace/demo`（交付物项目）在父项目 `/srv/dev/VisualNovelEngine` 下，**不在本 git 仓库内**。
 
 ## 快速开始
 
 ```bash
 npm install
-npm run build           # esbuild: src/index.ts -> dist/index.js（含 Vue 打包，~285kB）
-# 在父项目运行演示：
-cd .. && node serve.js  # 绑定 0.0.0.0:11491
-# 浏览器打开 http://<host>:11491/
+npm run dev            # Vite dev：编辑器服务在 http://0.0.0.0:11491/（HMR 热重载）
+npm run build          # vite build（编辑器）+ npm run lib（engine.js）
+npm run typecheck      # 引擎库 tsc（编辑器 .vue 用 vue-tsc）
 ```
 
-页面上：开始/暂停/重播、速度、**交互/确定性**切换、录制 WebM、截图 PNG、**音量/静音**，以及一个可展开的**元素检查器**（查看引擎运行态每一层细节）。
-
-> 调试入口：`?mode=deterministic&frame=<毫秒>` 确定性地渲染某一时刻；`?mode=interactive` 走交互回放。
+- 打开 `http://<host>:11491/` = **可视化编辑器**（预览播放器 `/demo` 项目）。
+- 交付物项目数据在 `/demo/*`（config/scenes/assets），静态；改它 → Vite HMR 即时刷新。
 
 ## 为什么这样设计
 
-- **双轨内容**：类型安全 TS API + JSON(带 Schema)——IDE 全程纠错 + 内容可序列化。
-- **确定性时间轴**：演出时钟与帧率解耦，预览=导出，稳定可复现（视频化核心）。
-- **两种输出语义**：确定性导出（按预设速度、成片/素材）vs 交互录制（记录真实操作）。
-- **特效可跳过**：交互模式下单击即结束进行中的特效/打字机。
-- **状态驱动 + DOM 视图**：UI 元素可检查（match Librian 的 DOM 视图思想），引擎保持框架无关、强类型（无 `any`）。
-
-架构灵感与合规：受 [Librian](https://github.com/RimoChan/Librian) (MPL-2.0, © RimoChan) 启发，详见 `NOTICE`。
+- **Vue 是第一公民**：编辑器与播放器都是 `.vue` SFC；引擎保持框架无关、强类型（无 `any`）。
+- **双轨剧本**：JS/TS 脚本（`story.demo.ts`）与 JSON（`demo.json`）等价，`createEngine` 均可消费。
+- **状态即快照**：引擎产出类型化 `SceneState`，DOM(播放器) 渲染、Canvas(renderer) 导出。
+- **特效可跳过 / 双渲染器 / 热重载**：交互、导出、开发体验兼顾。
+- 架构灵感与合规：受 [Librian](https://github.com/RimoChan/Librian) (MPL-2.0, © RimoChan) 启发，详见 `NOTICE`。
 
 ## 许可
 

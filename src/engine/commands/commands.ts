@@ -4,9 +4,9 @@
  * 版权/借鉴见 src/types.ts 头条。
  */
 // 指令处理层：把一条 directive 转成调度任务/状态改写，由 engine.ts Object.assign 挂到原型。
-import type { Engine } from './engine.js';
-import { toMs, ease, lerp, clamp } from './util.js';
-import type { Task, RainOverlay, Directive, SpriteRuntime } from './types.js';
+import type { Engine } from '../core/engine.js';
+import { toMs, ease, lerp, clamp } from '../platform/util.js';
+import type { Task, RainOverlay, Directive, SpriteRuntime } from '../types/types.js';
 
 export const commands = {
   _spawn(this: Engine, d) {

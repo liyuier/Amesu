@@ -4,8 +4,8 @@
  * 版权/借鉴见 src/types.ts 头条。
  */
 // 渲染层：纯绘制，由 engine.ts 通过 Object.assign 挂到 Engine 原型。
-import type { Engine } from './engine.js';
-import { clamp, TAU } from './util.js';
+import type { Engine } from '../core/engine.js';
+import { clamp, TAU } from '../platform/util.js';
 
 export const renderer = {
   _drawDialogue(this: Engine, ctx, W, H) {

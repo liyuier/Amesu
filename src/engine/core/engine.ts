@@ -14,13 +14,13 @@
 //       音效、交互（点击推进/跳过/选择）、确定性导出与录屏、公开 API。
 // 设计详见 doc/AMESU-视觉小说引擎设计文档.md 与 doc/02-API参考.md。
 
-import { loadStory } from './story.js';
-import { clamp, lerp, ease, toMs, TAU } from './util.js';
-import { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from './placeholder.js';
-import { AudioManager } from './audio.js';
-import type { Story, CharacterDef, Task, EngineOptions, Directive, EngineRunState, RainOverlay, SpriteRuntime, BgRuntime, CameraRuntime, SayRuntime, ChoiceRuntime, FadeRuntime, Project, Drawable, SceneState } from './types.js';
-import { renderer } from "./renderer.js";
-import { commands } from "./commands.js";
+import { loadStory } from '../content/story.js';
+import { clamp, lerp, ease, toMs, TAU } from '../platform/util.js';
+import { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from '../platform/placeholder.js';
+import { AudioManager } from '../platform/audio.js';
+import type { Story, CharacterDef, Task, EngineOptions, Directive, EngineRunState, RainOverlay, SpriteRuntime, BgRuntime, CameraRuntime, SayRuntime, ChoiceRuntime, FadeRuntime, Project, Drawable, SceneState } from '../types/types.js';
+import { renderer } from '../render/renderer.js';
+import { commands } from '../commands/commands.js';
 
 
 const cx = (id) => id; // 占位，保持引用清晰

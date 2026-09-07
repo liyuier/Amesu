@@ -12,9 +12,8 @@
 // Amesu/src/index.js —— 引擎公开入口
 // 对应 doc/02-API参考.md 的导出清单。
 
-export { createEngine } from './engine.js';
-export { story, loadStory, storyToStory } from './story.js';
-export { Easing, clamp, lerp } from './util.js';
-export { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from './placeholder.js';
-export { AudioManager } from './audio.js';
-export { createPlayer, readScene } from './ui.js';
+export { createEngine } from './core/engine.js';
+export { story, loadStory, storyToStory } from './content/story.js';
+export { Easing, clamp, lerp } from './platform/util.js';
+export { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from './platform/placeholder.js';
+export { AudioManager } from './platform/audio.js';

@@ -58,7 +58,7 @@ class StoryBuilder {
   build() { return this._data; }
 }
 
-import type { Directive, Story } from './types.js';
+import type { Directive, Story } from '../types/types.js';
 
 export const story = {
   create(meta) { return new StoryBuilder(meta); },
