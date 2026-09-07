@@ -371,6 +371,11 @@ export class Engine {
     try { this.audio.stopBGM(200); } catch (e) { /* */ }
   }
   setMode(mode) { this.mode = mode; }
+  // 热重载：替换剧本（编辑器“应用”/dev-server 场景变化时调用）
+  setScripts(scripts: Story | Record<string, unknown>) {
+    this.story = loadStory(scripts);
+    this.restart();
+  }
   getState() {
     const s = this.state.stack[this.state.stack.length - 1];
     return { time: this.time, scene: s ? Object.keys(this.story.scenes).find((k) => this.story.scenes[k] === s.arr) : null, vars: this.state.vars, mode: this.mode };

@@ -170,8 +170,8 @@ export async function runVerify(url: string): Promise<string[]> {
     await d.evalJs('window.engine.toggleMute(); window.engine.setVolume(0.4);');
     st = await d.state();
     log(`恢复+音量0.4 audio=${JSON.stringify(st?.audio)}`);
-    const insp = await d.evalJs('document.getElementById("inspectContent").textContent.length');
-    log(`检查器面板内容长度=${insp}`);
+    const insp = await d.evalJs('document.querySelector(".frame") ? document.querySelector(".frame").childElementCount : -1');
+    log(`交付物播放器已挂载（.frame 子元素数）=${insp}`);
     await d.screenshot('/tmp/v4_inspector.png');
   } finally {
     await d.close();

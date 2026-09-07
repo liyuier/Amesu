@@ -3,14 +3,28 @@
 > 一个为「演出效果 / 视频素材」而生的、基于 Web 前端(TypeScript + Vue 3)的视觉小说演出引擎。
 > 你可能不是要做一个“能运行的游戏”，而是要一段**好看、可控、可复现的画面**——Amesu 把剧情编排成画面素材。
 
-## 仓库内容（本仓库 = 引擎本体）
+## 架构分层（三件事，别混）
+
+| 层 | 是什么 | 在哪 |
+|----|--------|------|
+| **引擎核心** | 逻辑/状态/调度/指令/导出（框架无关，强类型） | `src/engine|commands|renderer|types|util|story|...` |
+| **播放器** | 把 `SceneState` 渲染成画面（交付物的内容） | `src/ui.ts`（全 DOM，可 F12 逐项检查） |
+| **可视化编辑器** | 预览 + 控制栏 + 元素检查器 + 场景编辑（外部工具） | `src/editor.ts`（Vue），dev-server 挂到 `/editor` |
+| **交付物(项目)** | = 播放器容器 + 场景数据 + 素材（**仅这么多**） | `workspace/demo/`（不入本仓库） |
+
+> 交付物 `workspace/demo` 只有 `index.html`＋`style.css`＋`main.js`＋`config.json`＋`scenes/`＋`assets/`，无任何编辑器 UI；编辑器的一切（控制/检查/场景编辑）收在 `src/editor.ts`。
+
+## 仓库内容（本仓库 = 引擎 + 编辑器）
 
 ```
 src/                 TypeScript 源码（esbuild 构建 → dist ESM；tsc 0 错误、全程无 any）
   index.ts           公开导出 / 类型出口
-  engine.ts          引擎核心（生命周期/调度/交互/输出/检查器）—— 类型化，无框架依赖（457 行）
-  commands.ts        指令处理层（directive→任务/状态改写，310 行，Object.assign 挂到原型）
-  renderer.ts        画布导出渲染器（把 SceneState 绘到 canvas，供截图/录屏，194 行）
+  engine.ts          引擎核心（生命周期/调度/交互/输出/检查器）—— 类型化，无框架依赖
+  commands.ts        指令处理层（directive→任务/状态改写，Object.assign 挂到原型）
+  renderer.ts        画布导出渲染器（把 SceneState 绘到 canvas，供截图/录屏）
+  ui.ts              播放器（把 SceneState 渲染成【全 DOM】——这就是“交付物”的画面内容）
+  editor.ts          可视化编辑器（Vue IDE：控制栏/元素检查器/场景编辑），引擎的外部工具
+  index.ts / editor.ts(入口)  →  dist/index.js(交付物) / dist/editor.js(编辑器)
   ui.ts              Vue 3 表现层（把 SceneState 渲染成【可被 F12 检查的 DOM 元素】）
   types.ts           类型模型（Directive／Story／Project／SceneState／Runtime…）
   util.ts            缓动/数学/时间

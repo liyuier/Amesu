@@ -7,8 +7,8 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --target=es2022",
-    "watch": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --target=es2022 --watch",
+    "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --target=es2022 && esbuild src/editor.ts --bundle --format=esm --outfile=dist/editor.js --target=es2022",
+    "watch": "npm run build -- --watch",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
