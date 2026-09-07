@@ -42,6 +42,7 @@ export interface EngineOptions {
   dpr?: number; fps?: number; assetBase?: string;
   mode?: 'interactive' | 'deterministic';
   loop?: boolean; autoplay?: boolean;
+  resolveAsset?: (src: string) => string;
   plugins?: unknown[];
   onFrame?: (frame: number, state: SceneState) => void;
   onError?: (err: unknown) => void;

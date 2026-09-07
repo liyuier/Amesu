@@ -1,20 +1,19 @@
 <script setup lang="ts">
-// 编辑器布局：左侧面板(工具+检查+场景编辑) + 右侧预览(播放器)。
-// 引擎在此创建；播放器(Player.vue) 渲染 SceneState；此处轮询把它变成响应式状态。
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { createEngine, type Engine, type Project, type SceneState } from '@engine';
+// 编辑器：VSCode 式布局（顶栏 / 左侧工具区 / 中央预览 / 底部状态栏），交付物 = 用户选择的本地工作目录。
+import { ref, onBeforeUnmount } from 'vue';
+import { createEngine, type Engine, type SceneState, type Project } from '@engine';
 import Player from './components/Player.vue';
 import Toolbar from './components/Toolbar.vue';
 import Inspector from './components/Inspector.vue';
+import { useProject } from './composables/useProject.ts';
 
+const { loaded, name, error, openDir } = useProject();
 const engine = ref<Engine | null>(null);
 const state = ref<SceneState | null>(null);
 const inspect = ref('');
 const sceneText = ref('');
-const mode = ref<'interactive' | 'deterministic'>('interactive');
-const projectPath = ref('/demo');   // 交付物(项目数据)静态路径
-
 let raf = 0;
+
 function tick() {
   if (engine.value) {
     state.value = engine.value.getScene();
@@ -22,45 +21,59 @@ function tick() {
   }
   raf = requestAnimationFrame(tick);
 }
-
-async function boot() {
-  const [cfg] = await Promise.all([fetch(`${projectPath.value}/config.json`).then((r) => r.json())]);
-  // 双轨剧本：优先【JS 脚本】(模块图内，@engine 可解析)；回退 /demo JSON
-  let scene;
-  try { scene = ((await import('./story.demo.ts')) as { demoStory?: unknown }).demoStory; }
-  catch { scene = await fetch(`${projectPath.value}/scenes/demo.json`).then((r) => r.json()); }
-  const project: Project = { meta: { ...cfg, resolution: cfg.resolution }, scripts: scene, characters: cfg.characters };
-  engine.value = createEngine(project, { fps: cfg.fps, resolution: cfg.resolution, mode: 'interactive', assetBase: `${projectPath.value}/assets` });
+function launch(project: Project, resolveAsset: (src: string) => string) {
+  engine.value = createEngine(project, { resolution: project.meta?.resolution, resolveAsset });
   engine.value.start();
-  sceneText.value = JSON.stringify(scene, null, 2);
+  sceneText.value = JSON.stringify(project.scripts ?? {}, null, 2);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
 }
-
-function applyScene() {
-  try { engine.value?.setScripts(JSON.parse(sceneText.value)); } catch (e) { alert('JSON 解析失败：' + (e as Error).message); }
+async function handleOpen() {
+  await openDir();
+  if (loaded.value && loaded.value.project) launch(loaded.value.project, loaded.value.resolveAsset);
 }
-function onMode(m: 'interactive' | 'deterministic') { mode.value = m; engine.value?.setMode(m); }
-
-onMounted(boot);
+function applyScene() { try { engine.value?.setScripts(JSON.parse(sceneText.value)); } catch (e) { alert('JSON 解析失败：' + ((e as Error).message)); } }
+function onMode(m: 'interactive' | 'deterministic') { engine.value?.setMode(m); }
 onBeforeUnmount(() => cancelAnimationFrame(raf));
 </script>
 
 <template>
-  <div class="ed-root">
-    <aside class="ed-panel">
-      <h2>🧪 Amesu 可视化编辑器</h2>
-      <Toolbar :engine="engine" @mode="onMode" />
-      <label class="ed-label">剧本（JSON，改后点“应用”；Vite HMR 亦热重载）</label>
-      <textarea v-model="sceneText" class="ed-scene" spellcheck="false" />
-      <button class="ed-apply" @click="applyScene">✔ 应用到预览</button>
-      <Inspector :inspect="inspect" />
-      <p class="ed-note">交付物 = <code>/demo</code>（静态项目数据，由播放器渲染）；引擎逻辑见 <code>src/engine</code>。</p>
-    </aside>
-    <main class="ed-preview">
-      <div class="frame">
-        <Player v-if="state" :state="state" @choose="(i: number) => engine?.choose(i)" />
-      </div>
-      <p class="ed-hint">预览（= 交付物画面）。修改 /demo 下场景/配置/素材，Vite HMR 即时刷新。</p>
-    </main>
+  <div class="ed-app">
+    <header class="ed-top">
+      <span class="ed-title">🧪 Amesu 可视化编辑器</span>
+      <button class="ed-open" @click="handleOpen">{{ name ? '📂 ' + name : '📂 打开工作目录' }}</button>
+      <span v-if="error" class="ed-err">{{ error }}</span>
+      <span class="ed-top-spacer"></span>
+      <span class="ed-top-hint">Vite + Vue 3 · 预览=交付物画面</span>
+    </header>
+
+    <div class="ed-body">
+      <aside class="ed-side">
+        <template v-if="engine">
+          <Toolbar :engine="engine" @mode="onMode" />
+          <label class="ed-label">剧本（JSON，改后点“应用”）</label>
+          <textarea v-model="sceneText" class="ed-scene" spellcheck="false" />
+          <button class="ed-apply" @click="applyScene">✔ 应用到预览</button>
+        </template>
+        <Inspector :inspect="inspect" />
+      </aside>
+
+      <main class="ed-main">
+        <div v-if="!engine" class="ed-empty">
+          <p class="ed-empty-title">还没有打开工作目录</p>
+          <button class="ed-open lg" @click="handleOpen">📂 选择本地目录作为工作目录</button>
+          <p class="ed-hint">目录内需有 <code>config.json</code> ＋ <code>scenes/*.json</code> ＋ <code>assets/</code><br/>（如 <code>workspace/demo</code>）。</p>
+        </div>
+        <div v-else class="ed-stage">
+          <Player v-if="state" :state="state" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" />
+        </div>
+      </main>
+    </div>
+
+    <footer class="ed-statusbar">
+      <span v-if="engine">scene:{{ state?.scene ?? '-' }} · t:{{ state?.time }}ms · {{ state?.mode }} x{{ state?.speed }}{{ state?.paused ? ' · ⏸' : '' }}{{ state?.ended ? ' · 结束' : '' }}</span>
+      <span v-else>就绪</span>
+      <span class="ed-spacer"></span>
+      <span class="ed-status-right">点击画面=推进/跳过 · 交付物 = 本地工作目录（静态数据）</span>
+    </footer>
   </div>
 </template>

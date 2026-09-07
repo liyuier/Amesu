@@ -3,7 +3,7 @@
 import { computed } from 'vue';
 import type { SceneState } from '@engine';
 const props = defineProps<{ state: SceneState }>();
-const emit = defineEmits<{ choose: [index: number] }>();
+const emit = defineEmits<{ advance: []; choose: [index: number] }>();
 
 const bgStyle = computed(() => ({
   backgroundImage: props.state.bg ? `url("${props.state.bg.src}")` : undefined,
@@ -28,7 +28,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
 </script>
 
 <template>
-  <div class="ams-stage" @click="$emit('choose', -1)">
+  <div class="ams-stage" @click="emit('advance')">
     <div v-if="state.bg" class="ams-bg" :style="bgStyle"></div>
     <div class="ams-sprites">
       <img v-for="sp in state.sprites" v-show="sp.ready && sp.src" :key="sp.id" class="ams-sprite"

@@ -35,6 +35,7 @@ export class Engine {
   fps!: number;
   dpr!: number;
   assetBase!: string;
+  resolveAsset!: ((src: string) => string) | null;
   mode!: 'interactive' | 'deterministic';
   story!: Story;
   characters!: Record<string, CharacterDef>;
@@ -73,6 +74,7 @@ export class Engine {
     this.fps = options.fps || meta.fps || 30;
     this.dpr = options.dpr || 1;
     this.assetBase = options.assetBase || meta.res || './assets';
+    this.resolveAsset = options.resolveAsset ?? null;
     this.mode = options.mode || 'interactive'; // 'interactive' | 'deterministic'
     this.story = loadStory(project.scripts || project);
     this.characters = Object.assign({}, meta.characters || {}, this.story.characters || {});
@@ -130,6 +132,7 @@ export class Engine {
 
   // ---------- 素材 ----------
   _resolve(src) {
+    if (this.resolveAsset) return this.resolveAsset(src);
     try { return new URL(src, new URL(this.assetBase + '/', location.href)).href; }
     catch (e) { return src; }
   }
