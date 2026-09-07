@@ -8,7 +8,9 @@
 ```
 src/                 TypeScript 源码（esbuild 构建 → dist ESM；tsc 0 错误、全程无 any）
   index.ts           公开导出 / 类型出口
-  engine.ts          引擎核心（生命周期/调度/交互/输出/检查器）—— 类型化，无框架依赖
+  engine.ts          引擎核心（生命周期/调度/交互/输出/检查器）—— 类型化，无框架依赖（457 行）
+  commands.ts        指令处理层（directive→任务/状态改写，310 行，Object.assign 挂到原型）
+  renderer.ts        画布导出渲染器（把 SceneState 绘到 canvas，供截图/录屏，194 行）
   ui.ts              Vue 3 表现层（把 SceneState 渲染成【可被 F12 检查的 DOM 元素】）
   types.ts           类型模型（Directive／Story／Project／SceneState／Runtime…）
   util.ts            缓动/数学/时间
@@ -27,7 +29,10 @@ NOTICE               版权与 Librian(MPL-2.0) 归属声明
 
 - **场景（背景/立绘/粒子/镜头）**：Canvas 合成，便于连续动画与对粒子/逐帧的控制。
 - **交互 UI（对白框/名字/正文/选项/HUD）**：**Vue 3 DOM 元素**——在 F12 里能看到 `.ams-dialogue`、`.ams-name`、`.ams-text`、`button.ams-choice`、`.ams-hud`，逐项可分析、可改样式。
-- **状态为真源**：引擎每帧产出类型化的 `SceneState`，DOM(Vue) 与 Canvas 都按它渲染；`engine.getScene()` 即快照。
+- **状态为真源**：引擎每帧产出类型化的 `SceneState`；`getScene()` 即快照。
+- **全 DOM 表现（可 F12 逐项检查）**：背景 `div.ams-bg`、立绘 `img.ams-sprite`、粒子 `span.ams-drop`、对白 `div.ams-dialogue`(→`.ams-name`/`.ams-text`)、选项 `button.ams-choice`、`div.ams-hud`——都是真实 DOM。
+- **双渲染器**：DOM 用于展示（可检查）；`renderer.ts` 把 SceneState 绘到画布用于**导出/录制**（`exportMode`）。
+- **Vue 编辑器可复用**：引擎保持框架无关，只暴露**指令式控制 API**（`createEngine` + `getScene`/`play`/`pause`/`seek`/`setSpeed`/`setMode`/`choose`/`handleClick`/`on('frame')`）。未来的可视化编辑器即另一个 Vue 消费者——直接读取 `getScene()`、调用控制 API 即可。
 
 ## 快速开始
 

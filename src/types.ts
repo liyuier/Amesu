@@ -51,7 +51,7 @@ export interface EngineOptions {
 export interface BgState { src: string; mix: number; }
 export interface SpriteState {
   id: string; expr: string; pos: number; z: number;
-  opacity: number; flip: boolean; color: string; ready: boolean;
+  opacity: number; flip: boolean; color: string; ready: boolean; src: string;
 }
 export interface SayState { who: string; text: string; reveal: number; }
 export interface ChoiceOption { text: string; jump?: string; set?: Record<string, unknown>; }

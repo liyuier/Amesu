@@ -19,6 +19,8 @@ import { clamp, lerp, ease, toMs, TAU } from './util.js';
 import { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from './placeholder.js';
 import { AudioManager } from './audio.js';
 import type { Story, CharacterDef, Task, EngineOptions, Directive, EngineRunState, RainOverlay, SpriteRuntime, BgRuntime, CameraRuntime, SayRuntime, ChoiceRuntime, FadeRuntime, Project, Drawable, SceneState } from './types.js';
+import { renderer } from "./renderer.js";
+import { commands } from "./commands.js";
 
 
 const cx = (id) => id; // 占位，保持引用清晰
@@ -51,6 +53,8 @@ export class Engine {
   fade!: FadeRuntime;
   skipRequested!: boolean;
   domUI = false;
+  domScene = false; // DOM(Vue) 视图接管场景，画布留空（仅导出时绘制）
+  exportMode = false; // 导出/录制：让画布绘制完整帧
   _bgSrc = ""; // 当前背景的原始 src（供 DOM background-image 使用） // 当采用 DOM(Vue) 视图时，画布跳过 UI 层，由 DOM 呈现
   audio!: AudioManager;
   ctx!: CanvasRenderingContext2D;
@@ -156,6 +160,12 @@ export class Engine {
     const c = makeBackground(src || 'bg', this.res.width, this.res.height);
     this._imgCache.set(key, c);
     return c;
+  }
+
+  _spriteSrc(c: SpriteRuntime): string {
+    if (!c.sprite) return '';
+    if (c.sprite instanceof HTMLImageElement) return c.sprite.src;
+    return (c.sprite as HTMLCanvasElement).toDataURL();
   }
 
   async _charSprite(id, expr, color) {
@@ -391,16 +401,15 @@ export class Engine {
     };
   }
 
-
   // 返回当前演出状态的“快照”给 Vue/DOM 视图（元素级、类型化，无 any）
   getScene(): SceneState {
     const s = this.state.stack[this.state.stack.length - 1];
     const scene = s ? (Object.keys(this.story.scenes).find((k) => this.story.scenes[k] === s.arr) ?? null) : null;
     const sprites = [...this.chars.values()]
-      .map((c) => ({ id: c.id, expr: c.expr, pos: c.xFrac, z: c.z, opacity: c.opacity, flip: c.scaleX < 0, color: c.color, ready: !!c.sprite }))
+      .map((c) => ({ id: c.id, expr: c.expr, pos: c.xFrac, z: c.z, opacity: c.opacity, flip: c.scaleX < 0, color: c.color, ready: !!c.sprite, src: this._spriteSrc(c) }))
       .sort((a, b) => a.z - b.z);
     return {
-      bg: this.bg.cur ? { src: this._bgSrc || '', mix: this.bg.mix } : null,
+      bg: this.bg.cur ? { src: this._resolve(this._bgSrc || ''), mix: this.bg.mix } : null,
       sprites,
       say: this.lastSay ? { who: this.lastSay.who, text: this.lastSay.text, reveal: this.lastSay.reveal } : null,
       choices: this.pendingChoice ? { chosen: this.pendingChoice.chosen, options: this.pendingChoice.options } : null,
@@ -444,491 +453,15 @@ export class Engine {
 
   // ---------- 输出 ----------
   async snapshot() {
+    this.exportMode = true;
     this._render();
+    this.exportMode = false;
     return this.canvas.toBlob ? new Promise((r) => this.canvas.toBlob((b) => r(b), 'image/png')) : this.canvas.toDataURL('image/png');
   }
 
   captureStream() { return this.canvas.captureStream(this.fps); }
 
-  _spawn(d) {
-    switch (d.type) {
-      case 'bg': return this._taskBg(d);
-      case 'char': return this._taskChar(d);
-      case 'say': return this._taskSay(d);
-      case 'wait': return this._taskTime('wait', toMs(d.duration));
-      case 'camera': return this._taskCamera(d);
-      case 'move': return this._taskMove(d);
-      case 'tween': return this._taskTween(d);
-      case 'choice': return this._taskChoice(d);
-      case 'bgm': this._applyBGM(d); return null;
-      case 'sfx': this._applySFX(d); return null;
-      case 'voice': this._applyVoice(d); return null;
-      case 'effect': return this._taskEffect(d);
-      default: return null;
-    }
-  }
-
-  _taskTime(kind, duration) {
-    const start = this.time;
-    return {
-      kind, start, duration,
-      isDone: () => this.time - start >= duration,
-      complete: () => {},
-    };
-  }
-
-  _taskBg(d) {
-    const duration = toMs(d.duration) || (d.transition && d.transition !== 'none' ? 600 : 0);
-    const start = this.time;
-    const prevMix = this.bg.cur ? this.bg.mix : 1;
-    this._applyBgStart(d);
-    return {
-      kind: 'bg', start, duration,
-      isDone: () => this.time - start >= duration,
-      tick: () => {
-        if (duration > 0) this.bg.mix = clamp((this.time - start) / duration, 0, 1);
-        else this.bg.mix = 1;
-      },
-      complete: () => { this.bg.mix = 1; if (this.bg.prev) this.bg.prev = null; },
-    };
-  }
-
-  _taskChar(d) {
-    this._applyCharStart(d);
-    const dur = toMs(d.duration) || toMs(d.effect === 'fade-in' ? 400 : 0);
-    const start = this.time;
-    return {
-      kind: 'char', start, duration: dur,
-      isDone: () => this.time - start >= dur || dur === 0,
-      tick: () => {
-        const c = this.chars.get(d.id); if (!c) return;
-        if (dur > 0 && c.opacityT !== undefined) {
-          c.opacity = lerp(c.opacityFrom ?? 0, c.opacityTo ?? 1, clamp((this.time - start) / dur, 0, 1));
-        }
-      },
-      complete: () => { const c = this.chars.get(d.id); if (c) c.opacity = 1; },
-    };
-  }
-
-  _taskSay(d) {
-    const text = d.text || '';
-    const typewriter = toMs(d.typewriter);
-    const start = this.time;
-    const totalMs = text.length * typewriter;
-    const obj = {
-      who: d.who || '', text, typewriter, start,
-      reveal: 0, typingDone: false, advance: false,
-    };
-    this.lastSay = obj;
-    this.skipRequested = false;
-    return {
-      kind: 'say', start, data: obj,
-      duration: totalMs,
-      isDone: () => {
-        if (this.mode === 'deterministic') return obj.typingDone;
-        return obj.typingDone && obj.advance;
-      },
-      tick: () => {
-        if (!obj.typingDone) {
-          obj.reveal = Math.min(text.length, Math.floor((this.time - start) / (typewriter || 1)));
-          if (obj.reveal >= text.length) { obj.typingDone = true; obj.reveal = text.length; }
-        }
-      },
-      complete: () => {},
-    };
-  }
-
-  _taskCamera(d) {
-    const duration = toMs(d.duration) || 1000;
-    const start = this.time;
-    const from = { x: this.camera.x, y: this.camera.y, zoom: this.camera.zoom };
-    const to = {
-      x: d.move?.x ?? this.camera.x, y: d.move?.y ?? this.camera.y,
-      zoom: d.move?.zoom ?? this.camera.zoom,
-    };
-    const e = ease(d.easing);
-    return {
-      kind: 'camera', start, duration,
-      isDone: () => this.time - start >= duration,
-      tick: () => {
-        const t = clamp((this.time - start) / duration, 0, 1);
-        const k = e(t);
-        this.camera.x = lerp(from.x, to.x, k);
-        this.camera.y = lerp(from.y, to.y, k);
-        this.camera.zoom = lerp(from.zoom, to.zoom, k);
-      },
-      complete: () => {
-        this.camera.x = to.x; this.camera.y = to.y; this.camera.zoom = to.zoom;
-      },
-    };
-  }
-
-  _taskMove(d) {
-    const duration = toMs(d.duration) || 500;
-    const start = this.time;
-    const id = (d.target || '').replace(/^char:/, '');
-    const c = this.chars.get(id);
-    const from = { x: c ? c.xFrac : (d.from?.x ?? 0.5) };
-    const to = { x: d.to?.x ?? (d.to?.x ?? from.x) };
-    const e = ease(d.easing);
-    return {
-      kind: 'move', start, duration,
-      isDone: () => this.time - start >= duration,
-      tick: () => {
-        const k = e(clamp((this.time - start) / duration, 0, 1));
-        if (c) c.xFrac = lerp(from.x, to.x, k);
-      },
-      complete: () => { if (c) c.xFrac = to.x; },
-    };
-  }
-
-  _taskTween(d) {
-    const duration = toMs(d.duration) || 500;
-    const start = this.time;
-    const id = (d.target || '').replace(/^char:/, '');
-    const c = this.chars.get(id);
-    const props = d.props || {};
-    const from = { opacity: c ? c.opacity : 1, scaleX: c ? (c.scaleX || 1) : 1 };
-    const to = { opacity: props.opacity ?? from.opacity, scaleX: props.scale ?? from.scaleX };
-    const e = ease(d.easing);
-    return {
-      kind: 'tween', start, duration,
-      isDone: () => this.time - start >= duration,
-      tick: () => {
-        const k = e(clamp((this.time - start) / duration, 0, 1));
-        if (c) { c.opacity = lerp(from.opacity, to.opacity, k); c.scaleX = lerp(from.scaleX, to.scaleX, k); }
-      },
-      complete: () => { if (c) { c.opacity = to.opacity; c.scaleX = to.scaleX; } },
-    };
-  }
-
-  _taskChoice(d) {
-    const options = d.options || [];
-    this.pendingChoice = { options, chosen: null, boxes: [] };
-    // 确定性：自动选默认（meta.defaultBranch 或第一项）
-    if (this.mode === 'deterministic') {
-      const def = this.story.meta?.defaultBranch;
-      let idx = 0;
-      if (def != null) {
-        const i = options.findIndex((o) => o.text === def);
-        if (i >= 0) idx = i;
-      }
-      this.pendingChoice.chosen = idx; // 确定性：自动选择，不依赖音频（避免 autoplay 限制）
-    }
-    return {
-      kind: 'choice', start: this.time,
-      isDone: () => this.pendingChoice && this.pendingChoice.chosen != null,
-      complete: () => this._resolveChoice(),
-    };
-  }
-
-  _applyBgStart(d) {
-    this._bgSrc = (d.src as string) || '';
-    this.bg.prev = this.bg.cur;
-    this._bg(d.src).then((img) => {
-      this.bg.cur = img; this.bg.mix = 0;
-      if (d.transition === 'fade') this.fade = { color: 'rgba(0,0,0,0)', a: 0 };
-      else if (d.transition === 'black') this.fade = { color: 'rgba(0,0,0,1)', a: 1 };
-    });
-  }
-
-  _applyCharStart(d) {
-    const cfg = this.characters[d.id as string] || {};
-    const color = d.color || cfg.color || '#8fd0ff';
-    const frac = this._xPos(d.at);
-    this._charSprite(d.id, d.expr, color).then((sprite) => {
-      const from: Partial<SpriteRuntime> = this.chars.get(d.id as string) || {};
-      this.chars.set(d.id, {
-        id: d.id, sprite, expr: d.expr, color,
-        xFrac: from.xFrac ?? frac, z: d.z ?? 10,
-        opacity: d.effect === 'fade-in' ? 0 : 1,
-        opacityFrom: 0, opacityTo: 1,
-        scaleX: d.flip ? -1 : 1,
-      });
-    });
-    this.lastSay = null;
-  }
-
-  _xPos(at) {
-    if (typeof at === 'number') return at;
-    if (at === 'left') return 0.18;
-    if (at === 'right') return 0.82;
-    return 0.5;
-  }
-
-  _applyBGM(d) {
-    if (!this.audio.ctx && !this.audio.ensure) return;
-    this._audio('bgm', d.src).then((buf) => {
-      this.audio.setBGM(buf, { volume: d.volume ?? 0.6, fade: toMs(d.fade) || 800, loop: d.loop !== false });
-    });
-  }
-
-  _applySFX(d) {
-    this._audio('sfx', d.src).then((buf) => {
-      this.audio.playSFX(buf, { volume: d.volume ?? 0.7, at: toMs(d.at), fade: toMs(d.fade) });
-    });
-  }
-
-  _applyVoice(d) {
-    this._audio('voice', d.src).then((buf) => {
-      this.audio.playVoice(buf, { at: toMs(d.offset) });
-    });
-  }
-
-  _applyEffect(d) {
-    // 生成非阻塞叠加层，持续 duration（默认 3000）。d.name 为特效名（如 particle:rain）。
-    const duration = toMs(d.duration) || 3000;
-    const start = this.time;
-    const params = d.params || {};
-    const overlay = this._makeRain(start, duration, { ...params, count: params.count ?? 220 });
-    overlay.effectName = d.name;
-    this.overlays.push(overlay);
-  }
-
-  _taskEffect(d) {
-    const duration = toMs(d.duration) || 3000;
-    const start = this.time;
-    this._applyEffect(d);
-    const t = {
-      kind: 'effect', start, duration, forced: false,
-      isDone: () => t.forced || (this.time - start >= duration),
-      complete: () => {},
-    };
-    return t;
-  }
-
-  _makeRain(start, duration, p): RainOverlay {
-    const W = this.res.width, H = this.res.height;
-    const drops = [];
-    const n = p.count || 200;
-    for (let i = 0; i < n; i++) {
-      drops.push({
-        x: Math.random() * W, y: Math.random() * H,
-        len: 14 + Math.random() * 26, sp: (p.speed || 300) * (0.6 + Math.random() * 0.8),
-        thick: 1 + Math.random() * 2,
-      });
-    }
-    return { type: 'rain', start, duration, angle: Number(p.angle) || 0, drops };
-  }
-
-  _applySet(d) {
-    const v = d.var; if (v == null) return;
-    const cur = this.state.vars[v];
-    if (d.op === 'toggle') this.state.vars[v] = !cur;
-    else if (d.op === '+=') this.state.vars[v] = (Number(cur) || 0) + (Number(d.value) || 0);
-    else if (d.op === '-=') this.state.vars[v] = (Number(cur) || 0) - (Number(d.value) || 0);
-    else this.state.vars[v] = d.value;
-  }
-
-  _evalCond(cond) {
-    if (cond == null) return true;
-    if (typeof cond === 'boolean') return cond;
-    if (typeof cond === 'string') {
-      // 极简表达式：支持 var == 'x' / var == x / var
-      const m = cond.match(/^\s*([\w$]+)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/);
-      if (m) {
-        const a = this.state.vars[m[1]];
-        let b: string | number = m[3]; if (b.startsWith("'") || b.startsWith('"')) b = b.slice(1, -1); else b = Number(b);
-        switch (m[2]) { case '==': return a == b; case '!=': return a != b; case '>': return a > b; case '<': return a < b; case '>=': return a >= b; case '<=': return a <= b; }
-      }
-      return !!this.state.vars[cond];
-    }
-    return !!cond;
-  }
-
-  _applyControl(d) {
-    if (d.action === 'speed') this.speed = Number(d.value) || 1;
-  }
-
-  _resolveChoice() {
-    const ch = this.pendingChoice; if (!ch || ch.chosen == null) return;
-    const opt = ch.options[ch.chosen];
-    if (opt?.set) for (const k of Object.keys(opt.set)) this.state.vars[k] = opt.set[k];
-    this.pendingChoice = null;
-    if (opt && opt.jump) this._gotoScene(opt.jump);
-    // 若无 jump，则 continue（index 已在 spawn 时 advance）
-  }
-
-  _render() {
-    const ctx = this.ctx, W = this.res.width, H = this.res.height;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    if (this.ended) this._drawEnd(ctx, W, H);
-
-    // 世界（镜头）
-    ctx.save();
-    ctx.translate(W / 2, H / 2);
-    ctx.scale(this.camera.zoom, this.camera.zoom);
-    ctx.translate(-W / 2 - this.camera.x, -H / 2 - this.camera.y);
-
-    this._drawBg(ctx, W, H);
-    this._drawChars(ctx, W, H);
-    this._drawOverlays(ctx, W, H);
-    ctx.restore();
-
-    // UI（屏幕空间）
-    this._drawFade(ctx, W, H);
-    if (!this.domUI) { // DOM(Vue) 视图接管对白/选择/HUD；否则画布绘制（供导出/截图）
-      this._drawDialogue(ctx, W, H);
-      this._drawChoice(ctx, W, H);
-      this._drawHud(ctx, W, H);
-    }
-  }
-
-  _drawBg(ctx, W, H) {
-    const bg = this.bg;
-    if (bg.prev) this._drawCover(ctx, bg.prev, W, H, 1 - bg.mix);
-    if (bg.cur) this._drawCover(ctx, bg.cur, W, H, bg.mix);
-    else { ctx.fillStyle = '#0c1220'; ctx.fillRect(0, 0, W, H); }
-
-  }
-  _drawCover(ctx, src, W, H, alpha) {
-    if (!src) return;
-    ctx.globalAlpha = clamp(alpha, 0, 1);
-    try {
-      const sw = src.width, sh = src.height;
-      const s = Math.max(W / sw, H / sh);
-      const dw = sw * s, dh = sh * s;
-      ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
-    } catch (e) { /* ignore */ }
-    ctx.globalAlpha = 1;
-  }
-
-  _drawChars(ctx, W, H) {
-    const list = [...this.chars.values()].sort((a, b) => (a.z || 0) - (b.z || 0));
-    for (const c of list) {
-      if (!c.sprite) continue;
-      const sw = c.sprite.width || 256, sh = c.sprite.height || 256;
-      const dh = H * 0.48; // 半身/全身高
-      const dw = dh * (sw / sh);
-      const cx = c.xFrac * W;
-      const bx = cx - dw / 2;
-      const by = H - 172 - dh; // 立绘底部悬于对话框上方（约 172px 高的对话区）
-      // 脚下软阴影
-      ctx.save();
-      ctx.globalAlpha = (c.opacity || 1) * 0.25;
-      ctx.fillStyle = '#43301f';
-      ctx.beginPath();
-      ctx.ellipse(cx, H - 6, dw * 0.32, 14, 0, 0, TAU);
-      ctx.fill();
-      ctx.restore();
-      // 立绘
-      ctx.save();
-      ctx.globalAlpha = c.opacity;
-      ctx.translate(cx, 0);
-      ctx.scale(c.scaleX || 1, 1);
-      ctx.drawImage(c.sprite, -dw / 2, by, dw, dh);
-      ctx.restore();
-    }
-  }
-
-  _drawOverlays(ctx, W, H) {
-    for (const o of this.overlays) {
-      if (o.type !== 'rain') continue;
-      ctx.lineCap = 'round';
-      for (const d of o.drops) {
-        const elapsed = (this.time - o.start) / 1000;
-        const ty = ((d.y + d.sp * elapsed) % (H + 40)) - 20;
-        const slant = d.sp * (o.angle || 0) * 0.0012;
-        ctx.strokeStyle = 'rgba(200,225,255,0.62)';
-        ctx.lineWidth = d.thick;
-        ctx.beginPath();
-        ctx.moveTo(d.x, ty);
-        ctx.lineTo(d.x - slant - 2, ty + d.len);
-        ctx.stroke();
-      }
-    }
-  }
-
-  _drawFade(ctx, W, H) {
-    if (this.fade.a > 0) {
-      ctx.globalAlpha = clamp(this.fade.a, 0, 1);
-      ctx.fillStyle = this.fade.color;
-      ctx.fillRect(0, 0, W, H);
-      ctx.globalAlpha = 1;
-    }
-  }
-
-  _drawDialogue(ctx, W, H) {
-    if (!this.lastSay) return;
-    const say = this.lastSay;
-    const pad = 24;
-    const boxH = 140;
-    const x = pad, y = H - boxH - 24, w = W - pad * 2, h = boxH;
-    ctx.fillStyle = 'rgba(255,250,240,0.92)';
-    this._roundRect(ctx, x, y, w, h, 16); ctx.fill();
-    ctx.strokeStyle = 'rgba(180,140,100,0.45)'; ctx.lineWidth = 1.5;
-    this._roundRect(ctx, x, y, w, h, 16); ctx.stroke();
-    // 名字
-    if (say.who) {
-      ctx.fillStyle = '#a0552f';
-      ctx.font = '600 24px "Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei","PingFang SC",sans-serif';
-      ctx.fillText(say.who, x + 22, y + 36);
-    }
-    // 正文（打字机 + 换行）
-    ctx.fillStyle = 'rgba(60,45,30,0.95)';
-    ctx.font = '22px "Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei","PingFang SC",sans-serif';
-    this._drawWrapped(ctx, say.text, Math.min(say.reveal, say.text.length), x + 22, y + 72, w - 44, 34);
-  }
-
-  _drawWrapped(ctx, text, reveal, x, y, maxW, lineH) {
-    const t = text.slice(0, reveal);
-    let line = '', yy = y;
-    for (const ch of t) {
-      const test = line + ch;
-      if (ctx.measureText(test).width > maxW && line !== '') {
-        ctx.fillText(line, x, yy); line = ch; yy += lineH;
-      } else line = test;
-    }
-    if (line) ctx.fillText(line, x, yy);
-  }
-
-  _drawChoice(ctx, W, H) {
-    if (!this.pendingChoice || this.pendingChoice.chosen != null) return;
-    const opts = this.pendingChoice.options;
-    const bw = 360, bh = 52, gap = 18;
-    const x0 = (W - bw) / 2;
-    const total = opts.length * (bh + gap) - gap;
-    // 选项置于底部对话框上方，避免重叠
-    const boxTop = H - 140 - 24; // 与 _drawDialogue 的 box 顶部对齐
-    let y0 = boxTop - total - 44;
-    if (y0 < 60) y0 = 60;
-    this.pendingChoice.boxes = [];
-    ctx.font = '20px "Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei","PingFang SC","WenQuanYi Micro Hei",sans-serif';
-    for (let i = 0; i < opts.length; i++) {
-      const yy = y0 + i * (bh + gap);
-      ctx.fillStyle = 'rgba(255,250,240,0.95)';
-      this._roundRect(ctx, x0, yy, bw, bh, 12); ctx.fill();
-      ctx.strokeStyle = 'rgba(180,140,100,0.55)'; ctx.lineWidth = 1;
-      this._roundRect(ctx, x0, yy, bw, bh, 12); ctx.stroke();
-      ctx.fillStyle = 'rgba(70,50,35,0.95)';
-      ctx.fillText(opts[i].text, x0 + 24, yy + bh / 2 + 7);
-      this.pendingChoice.boxes.push({ x: x0, y: yy, w: bw, h: bh });
-    }
-    ctx.fillStyle = 'rgba(160,120,85,0.7)';
-    ctx.font = '16px "Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei","PingFang SC","WenQuanYi Micro Hei",sans-serif';
-    ctx.fillText('点击选择', x0 + bw - 64, y0 - 10);
-  }
-
-  _drawHud(ctx, W, H) {
-    ctx.fillStyle = 'rgba(120,90,60,0.6)';
-    ctx.font = '13px monospace';
-    const s = this.state.stack[this.state.stack.length - 1];
-    const sceneId = s && this.story ? Object.keys(this.story.scenes).find((k) => this.story.scenes[k] === s.arr) : '';
-    ctx.fillText(`scene:${sceneId || '-'}  t:${Math.round(this.time)}ms  ${this.mode}  x${this.speed}`, 12, 22);
-  }
-
-  _drawEnd(ctx, W, H) {
-    ctx.fillStyle = 'rgba(0,0,0,0)'; // 留空
-  }
-
-  _roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
 }
+
+export interface Engine { _spawn(...args: unknown[]): Task | null; _taskTime(...args: unknown[]): Task; _taskBg(...args: unknown[]): Task; _taskChar(...args: unknown[]): Task; _taskSay(...args: unknown[]): Task; _taskCamera(...args: unknown[]): Task; _taskMove(...args: unknown[]): Task; _taskTween(...args: unknown[]): Task; _taskChoice(...args: unknown[]): Task; _taskEffect(...args: unknown[]): Task; _applyBgStart(...args: unknown[]): void; _applyCharStart(...args: unknown[]): void; _xPos(...args: unknown[]): number; _applyBGM(...args: unknown[]): void; _applySFX(...args: unknown[]): void; _applyVoice(...args: unknown[]): void; _applyEffect(...args: unknown[]): void; _makeRain(...args: unknown[]): RainOverlay; _applySet(...args: unknown[]): void; _evalCond(...args: unknown[]): boolean; _applyControl(...args: unknown[]): void; _resolveChoice(...args: unknown[]): void;  _drawDialogue(...args: unknown[]): void; _render(...args: unknown[]): void; _drawBg(...args: unknown[]): void; _roundRect(...args: unknown[]): void; _drawChoice(...args: unknown[]): void; _drawHud(...args: unknown[]): void; _drawOverlays(...args: unknown[]): void; _drawChars(...args: unknown[]): void; _drawCover(...args: unknown[]): void; _drawFade(...args: unknown[]): void; _drawEnd(...args: unknown[]): void; _drawWrapped(...args: unknown[]): void; }
+Object.assign(Engine.prototype, commands, renderer);
