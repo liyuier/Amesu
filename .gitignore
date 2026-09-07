@@ -1,0 +1,11 @@
+# build output
+dist/
+# deps
+node_modules/
+# ide / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# runtime scratch
+*.tmp

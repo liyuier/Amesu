@@ -1,0 +1,23 @@
+Amesu — 版权与归属声明
+========================
+
+Amesu 是一个为「演出效果 / 视频素材」而生的、基于 Web 前端技术的视觉小说演出引擎。
+
+版权与许可
+----------
+* Amesu 本体（Amesu/src、demo、doc 等原创内容）以 **MIT License** 授权，Copyright (c) 2025 liyuier（见 LICENSE）。
+
+架构借鉴声明
+------------
+* Amesu 的部分**架构思想**（可序列化的演出状态快照、视图按状态回放、演出可预烘焙为有序序列、运行态可观测性、开发热重载与用户设置）受到
+  [Librian](https://github.com/RimoChan/Librian)（Copyright © RimoChan，采用 **Mozilla Public License 2.0**）的启发。
+* Amesu 为**原创实现**，未复制、未修改 Librian 的任何源文件，因此不触发 MPL-2.0 的“文件级 copyleft”义务。
+
+若未来引入 Librian 源码
+-----------------------
+* 若后续把 Librian 的任一源文件或其直接派生代码引入 Amesu，则该文件和它的派生文件**必须继续以 MPL-2.0 发布**，并保留其版权头与许可文本（建议附上
+  `LICENSE-librian-MPL-2.0.txt`）。这些文件**不适用** MIT 授权。
+
+第三方素材（demo）
+------------------
+* demo 中的静态素材取自网络公开资源并下载到本地（Unsplash 城市夜景背景、DiceBear 生成角色、SoundHelix 示例 BGM），仅用于演示，版权归各自作者。

@@ -1,0 +1,19 @@
+{
+  "name": "amesu",
+  "version": "0.1.0",
+  "description": "Amesu — a front-end visual-novel performance engine (for video / effects / demo assets).",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --target=es2022",
+    "watch": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --target=es2022 --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["visual-novel", "engine", "galgame", "rendering", "performance"],
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}
