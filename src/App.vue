@@ -86,7 +86,8 @@ async function applyScene() {
   }
 }
 async function loadAssets(path: string) { try { const r = await fetch('/api/asset-list?path=' + encodeURIComponent(path)); assets.value = await r.json(); } catch (e) { assets.value = []; } }
-watch(loaded, (v) => { if (v && v.project) { launch(v.project, v.assetBase); if (name.value) loadAssets(name.value); } });
+watch(loaded, (v) => { if (v && v.project) launch(v.project, v.assetBase); });
+watch(name, (n) => { if (n) loadAssets(n); }); // 项目路径确定后再拉取素材列表
 onMounted(() => {
   if (mainEl.value) { ro = new ResizeObserver(updateFrame); ro.observe(mainEl.value); updateFrame(); }
   // 脚本轨 HMR：dev-server 广播 reload → 重新打开当前项目（重取/转译 .ts 剧本）
@@ -130,8 +131,15 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
         </main>
         <div class="ed-split-h" @mousedown="startHDrag"></div>
         <section class="ed-bottom" :style="{ height: bottomHeight + 'px' }">
-          <div class="ed-bottom-title">时间轴 / 演出（当前场景指令，高亮当前步）</div>
+          <div class="ed-bottom-title">素材（资源） + 时间轴 / 演出</div>
           <div class="ed-bottom-body">
+            <div class="ed-assets">
+              <span class="ed-assets-title">素材：</span>
+              <span v-for="a in assets" :key="a.rel" class="ed-asset" :title="a.rel">
+                <img v-if="['png','jpg','jpeg','webp','gif'].includes(a.kind)" :src="a.url" class="ed-asset-thumb" />
+                {{ a.rel }}
+              </span>
+            </div>
             <div class="ed-timeline">
               <div v-for="(d, i) in sceneDirs" :key="i" class="ed-step" :class="{ cur: i === state?.index }">
                 <span class="ed-step-no">{{ i }}</span>
