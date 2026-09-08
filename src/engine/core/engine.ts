@@ -238,6 +238,7 @@ export class Engine {
     this.activeTasks = []; this.overlays = [];
     this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 };
     this.camera = { x: 0, y: 0, zoom: 1 }; this.lastSay = null; this.pendingChoice = null;
+    this.html = null; this.cg = null; this.video = null; this.uiFx = null; // 清叠加层：重播不再残留
     this.fade = { color: this.config.colors.fadeIn, a: 0 };
     this.state = { stack: [{ arr: this.story.scenes[this.story.start] || [], index: 0 }], vars: {} };
     this._advance();

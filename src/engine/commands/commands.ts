@@ -204,9 +204,10 @@ export const commands = {
     this._bgPrevSrc = this._bgSrc;
     this._bgSrc = (d.src as string) || '';
     this._bgPos = (d.pos as string) || 'center';
+    this.bg.mix = 0; // 立即开始交叉淡入（旧 bg 淡出、新 bg 淡入），避免闪一下再替换
     this.bg.prev = this.bg.cur;
     this._bg(d.src).then((img) => {
-      this.bg.cur = img; this.bg.mix = 0;
+      this.bg.cur = img;
       if (d.transition === 'fade') this.fade = { color: this.config.colors.fadeIn, a: 0 };
       else if (d.transition === 'black') this.fade = { color: this.config.colors.fadeOut, a: 1 };
     });
@@ -220,7 +221,7 @@ export const commands = {
       const prev: Partial<SpriteRuntime> = this.chars.get(d.id as string) || {};
       this.chars.set(d.id, {
         id: d.id, sprite, expr: d.expr, color,
-        xFrac: prev.xFrac ?? frac, xFracTo: frac, z: d.z ?? prev.z ?? 10,   // 位置引擎逐步插值 → 平滑移动
+        xFrac: prev.xFrac ?? frac, xFracTo: (d.at !== undefined ? frac : (prev.xFracTo ?? prev.xFrac ?? frac)), z: d.z ?? prev.z ?? 10,   // 未给 at 则保持当前位置
         opacity: d.effect === 'fade-in' ? 0 : (prev.opacity ?? 1),
         opacityFrom: d.effect === 'fade-in' ? 0 : (prev.opacity ?? 1), opacityTo: 1,
         scaleX: d.flip ? -1 : (prev.scaleX ?? 1),

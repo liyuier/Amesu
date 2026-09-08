@@ -46,7 +46,7 @@ export const baseTheme: AmesuConfig = {
     character: { move: { duration: 500 }, enter: { duration: 400 }, exit: { duration: 300 } },
     speaker: { treatment: 'gray', grayFilter: 'grayscale(0.85) brightness(0.72)', dimOpacity: 0.72, spriteSuffix: '_talk' },
     transition: { crossfade: 800 },
-    tags: { hit: 'brightness(1.7) saturate(2.6) contrast(1.2)', joy: 'brightness(1.12) saturate(1.25)', shock: 'brightness(1.7) contrast(1.5)', 'hurt': 'grayscale(.4) brightness(1.4)' },
+    tags: { hit: 'brightness(1.9) saturate(0.2) contrast(1.4) hue-rotate(-30deg)', joy: 'brightness(1.35) saturate(1.9) hue-rotate(12deg)', shock: 'brightness(2) contrast(1.8) hue-rotate(28deg)', 'hurt': 'grayscale(.7) brightness(1.5) contrast(1.2)' },
   },
   defaults: { charColor: '#8fd0ff', charW: 520, charH: 760, effectDuration: 3000 },
 };

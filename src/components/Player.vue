@@ -27,8 +27,8 @@ const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; 
   const speakerFilter = useGray && !sp.speaking ? (eff?.speaker.grayFilter || 'grayscale(0.85) brightness(0.72)') : '';
   return {
     left: `${sp.pos * 100}%`, opacity: String(sp.opacity), zIndex: String(sp.z),
-    transform: `translateX(-50%)${sp.flip ? ' scaleX(-1)' : ''}`,
-    transition: 'filter .3s ease',
+    transform: `translateX(-50%) scale(${sp.speaking ? 1.06 : 1})${sp.flip ? ' scaleX(-1)' : ''}`, // 说话者略放大=强调
+    transition: 'filter .3s ease, transform .3s ease',
     filter: [fxFilter, speakerFilter].filter(Boolean).join(' ') || '',
   };
 };
