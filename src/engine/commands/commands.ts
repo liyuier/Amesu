@@ -239,11 +239,14 @@ export const commands = {
     for (const [id, c] of this.chars.entries()) {
       const idx = ids.indexOf(id);
       if (idx >= 0) {
-        // 单人镜头：保持当前位置（避免把主角强推回中间）；多人按人数排位
-        c.xFracTo = ids.length === 1 ? (c.xFrac ?? 0.5) : pos[idx];
-        c.leaving = false; if (c.opacityTo === 0) c.opacityTo = 1;
+        // 单人镜头：保持当前位置；多人按人数排位
+        const to = ids.length === 1 ? (c.xFrac ?? 0.5) : pos[idx];
+        if (c.xFracTo !== to) { c.xFracFrom = c.xFrac ?? to; c.xFracStart = this.time; } // 记录新起点 → 平滑移动
+        c.xFracTo = to;
+        if (c.leaving || c.opacityTo === 0) { c.leaving = false; c.opacityFrom = c.opacity ?? 0; c.opacityStart = this.time; c.opacityTo = 1; }
+        else if (c.opacityTo === 0) { c.opacityFrom = c.opacity ?? 0; c.opacityStart = this.time; c.opacityTo = 1; }
       }
-      else { c.leaving = true; c.opacityTo = 0; } // 不在镜头 → 淡出
+      else { c.leaving = true; if (c.opacityTo !== 0) { c.opacityFrom = c.opacity ?? 1; c.opacityStart = this.time; } c.opacityTo = 0; } // 不在镜头 → 淡出
     }
   }
 ,
@@ -257,7 +260,7 @@ export const commands = {
 ,
   _applyHide(this: Engine, d) {
     const c = this.chars.get(d.id as string);
-    if (c) { c.opacityTo = 0; c.leaving = true; } // 离场：淡出(exit 时长)，淡到 0 后由 _update 移除
+    if (c && c.opacity !== 0) { c.opacityFrom = c.opacity; c.opacityStart = this.time; c.opacityTo = 0; c.leaving = true; } // 离场：淡出，淡到 0 后移除
   }
 ,
   _xPos(this: Engine, at) {

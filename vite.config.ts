@@ -28,6 +28,9 @@ function safeJoin(base: string, rel: string): string | null {
 function parentRel(rel: string): string { const i = rel.lastIndexOf('/'); return i < 0 ? '' : rel.slice(0, i); }
 
 // 服务端 API：浏览开发机目录(/api/fs/list) + 读取项目(/api/project /api/story) + 暴露素材(/api/asset)
+const sse = new Set<http.ServerResponse>();
+function broadcast(msg: string) { for (const r of sse) { try { r.write('data: ' + msg + '\n\n'); } catch (e) { /* */ } } }
+
 function projectApi(): Plugin {
   return {
     name: 'amesu-server-api',
@@ -36,6 +39,10 @@ function projectApi(): Plugin {
         const u = new URL(req.url || '/', 'http://x');
         const p = u.pathname, q = u.searchParams;
         try {
+          if (p === '/__reload') {
+            res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+            res.write('retry: 2000\n\n'); sse.add(res); req.on('close', () => sse.delete(res)); return;
+          }
           if (p === '/api/fs/list') {
             const rel = q.get('path') || START;
             const dir = safeJoin(BASE, rel);
@@ -93,6 +100,14 @@ function projectApi(): Plugin {
     },
   };
 }
+
+// 监听开发机项目（父目录 workspace 下）→ /__reload 广播（脚本轨 HMR）
+try {
+  const watchRoot = path.join(path.resolve(here, '..'), 'workspace');
+  fs.watch(watchRoot, { recursive: true }, (_e, f) => {
+    if (f && /\.(ts|tsx|json)$/.test(f) && !/\.git/.test(f)) { broadcast('reload'); }
+  });
+} catch (e) { /* */ }
 
 export default defineConfig({
   root: here,

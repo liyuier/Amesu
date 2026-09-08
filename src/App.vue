@@ -69,7 +69,11 @@ function launch(project: Project, assetBase: string) {
 }
 function applyScene() { try { engine.value?.setScripts(JSON.parse(sceneText.value)); } catch (e) { alert('JSON 解析失败：' + ((e as Error).message)); } }
 watch(loaded, (v) => { if (v && v.project) launch(v.project, v.assetBase); });
-onMounted(() => { if (mainEl.value) { ro = new ResizeObserver(updateFrame); ro.observe(mainEl.value); updateFrame(); } });
+onMounted(() => {
+  if (mainEl.value) { ro = new ResizeObserver(updateFrame); ro.observe(mainEl.value); updateFrame(); }
+  // 脚本轨 HMR：dev-server 广播 reload → 重新打开当前项目（重取/转译 .ts 剧本）
+  try { const es = new EventSource('/__reload'); es.onmessage = (e) => { if (e.data === 'reload' && name.value) openProject(name.value); }; } catch (e) { /* */ }
+});
 onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
 </script>
 
