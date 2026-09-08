@@ -353,6 +353,7 @@ export class Engine {
   choose(i: number) { if (this.pendingChoice) { this.pendingChoice.chosen = i; } }
   handleClick(x, y) {
     if (this.mode === 'deterministic') return false;
+    if (this.paused) this.paused = false; // 点击预览=恢复（与播放/暂停按钮同步，避免“音乐响但场景不推进”）
     this.audio.ensure();
     // 先命中选项
     if (this.pendingChoice && this.pendingChoice.chosen == null) {
