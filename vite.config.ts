@@ -7,9 +7,9 @@ import fs from 'node:fs';
 import http from 'node:http';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-// 服务端可浏览的工作区根（用户可在此范围内自由选目录）
-const BASE = path.resolve(here, '..'); // /srv/dev/VisualNovelEngine
-const START = 'workspace';             // 打开目录浏览器时的默认路径
+// 服务端可浏览根目录：默认为全盘 '/'，可用 AMESU_FS_ROOT 收紧；START 为打开目录浏览器时的默认路径（相对根）
+const BASE = path.resolve(process.env.AMESU_FS_ROOT || '/');
+const START = process.env.AMESU_FS_START || 'srv/dev/VisualNovelEngine/workspace';
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
@@ -22,7 +22,8 @@ const MIME: Record<string, string> = {
 function sendJson(res: http.ServerResponse, obj: unknown): void { res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.end(JSON.stringify(obj)); }
 function safeJoin(base: string, rel: string): string | null {
   const resolved = path.resolve(base, '.' + path.posix.normalize('/' + rel));
-  return resolved.startsWith(base + path.sep) || resolved === base ? resolved : null;
+  const r = path.relative(base, resolved);
+  return r && (r.startsWith('..') || path.isAbsolute(r)) ? null : resolved;
 }
 function parentRel(rel: string): string { const i = rel.lastIndexOf('/'); return i < 0 ? '' : rel.slice(0, i); }
 
@@ -36,7 +37,7 @@ function projectApi(): Plugin {
         const p = u.pathname, q = u.searchParams;
         try {
           if (p === '/api/fs/list') {
-            const rel = q.get('path') ?? START;
+            const rel = q.get('path') || START;
             const dir = safeJoin(BASE, rel);
             if (!dir || !fs.existsSync(dir)) { res.writeHead(404); res.end('not found'); return; }
             const dirs = fs.readdirSync(dir, { withFileTypes: true })

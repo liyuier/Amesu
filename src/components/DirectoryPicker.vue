@@ -16,7 +16,7 @@ function openDir(n: string) { list(path.value ? path.value + '/' + n : n); }
 function goUp() { if (parent.value !== '' || path.value) list(parent.value); }
 function choose() { emit('select', path.value); emit('close'); }
 
-onMounted(() => list('workspace'));
+onMounted(() => list('')); // 服务端默认到 START（见 /api/fs/list）
 </script>
 
 <template>
