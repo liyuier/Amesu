@@ -165,10 +165,11 @@ button:hover { border-color:var(--accent); color:#fff; }
 .mermaid-wrap .edgeLabel { color:#b8c2d6 !important; font-size:11px !important; }
 .mermaid-wrap .node rect { stroke:#e8e8ee; stroke-width:1.2; fill:#34343f; }
 .mermaid-wrap .node text { fill:#e8e8ee !important; font-family:'Noto Sans SC',sans-serif; font-size:14px !important; }
-.ed-main-row { flex:1; min-height:0; display:flex; }
-.ed-preview { flex:0 0 auto; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-.ed-split-v { flex:0 0 5px; cursor:col-resize; background:var(--line); }
-.ed-split-v:hover { background:var(--accent); }
+.ed-main { flex:1; min-height:0; display:flex; }
+.ed-main-left { flex:0 0 auto; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.ed-main-right { flex:1; min-width:0; display:flex; }
+.ed-main-split { flex:0 0 5px; cursor:col-resize; background:var(--line); }
+.ed-main-split:hover { background:var(--accent); }
 .sc-prop { flex:1; min-width:0; background:var(--side); border-left:1px solid var(--line); padding:12px; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
 .sc-prop-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .sc-prop-title { font-size:13px; color:var(--accent2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

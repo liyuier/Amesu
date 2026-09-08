@@ -28,13 +28,13 @@ const sceneText = ref('');
 const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
 const selNode = ref<number | null>(null);
 const propText = ref('');
-const sideCollapsed = ref(false);
+const toolHidden = ref(false);
 const previewW = ref(640);
 let pvDrag: { x: number; w: number } | null = null;
 function startPVDrag(e: MouseEvent) { pvDrag = { x: e.clientX, w: previewW.value }; const mv = (ev: MouseEvent) => { if (pvDrag) previewW.value = pvDrag.w + (ev.clientX - pvDrag.x); }; const up = () => { pvDrag = null; window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); }; window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); }
 const vidEl = ref<HTMLElement | null>(null); let vidPlayer: any = null;
 const sideTab = ref<'assets'|'fs'|'inspect'|null>('assets');
-function toggleAct(t: 'assets'|'fs'|'inspect') { if (sideTab.value === t && !sideCollapsed.value) { sideCollapsed.value = true; } else { sideTab.value = t; sideCollapsed.value = false; } }
+function toggleAct(t: 'assets'|'fs'|'inspect') { if (sideTab.value === t) { toolHidden.value = !toolHidden.value; } else { sideTab.value = t; toolHidden.value = false; } }
 const lbVisible = ref(false); const lbSrc = ref(''); const vidVisible = ref(false); const vidSrc = ref('');
 function openLb(url: string) { lbSrc.value = url; lbVisible.value = true; }
 function openVid(url: string) { vidSrc.value = url; vidVisible.value = true; }
@@ -139,13 +139,13 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
     </header>
 
     <div class="ed-mid">
-      <aside v-if="!sideCollapsed" class="ed-side" :style="{ width: sideWidth + 'px' }">
+      <aside class="ed-side" :style="{ width: sideWidth + 'px' }">
         <div class="ed-activity">
           <button class="ed-activity-btn" :class="{on: sideTab==='assets'}" title="素材(再点收起)" @click="toggleAct('assets')"><ImageIcon /></button>
           <button class="ed-activity-btn" :class="{on: sideTab==='fs'}" title="文件系统(再点收起)" @click="toggleAct('fs')"><FolderOpen /></button>
           <button class="ed-activity-btn" :class="{on: sideTab==='inspect'}" title="检查器(再点收起)" @click="toggleAct('inspect')"><Search /></button>
         </div>
-        <div class="ed-tool" v-if="sideTab">
+        <div class="ed-tool" v-if="sideTab && !toolHidden">
           <template v-if="engine">
             <template v-if="sideTab==='assets'">
               <div v-for="g in assetGroups" :key="g.label" class="ed-agroup">
@@ -177,23 +177,23 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
       <div class="ed-split-v" @mousedown="startVDrag"></div>
 
       <div class="ed-col">
-        <main class="ed-main" ref="mainEl">
-          <div class="ed-main-row">
-          <div class="ed-preview" ref="previewEl" :style="{ width: previewW + 'px' }">
-          <div v-if="!engine" class="ed-empty">
-            <p class="ed-empty-title">还没打开项目</p>
-            <button class="ed-open lg" @click="showPicker = true">📂 选择开发机目录作为工作目录</button>
-            <p class="ed-hint">选择含 <code>config.json</code>＋<code>scenes/</code>＋<code>assets/</code> 的目录（自由浏览开发机）。</p>
+        <main class="ed-main">
+          <div class="ed-main-left" ref="previewEl" :style="{ width: selNode != null ? previewW + 'px' : '100%' }">
+            <div v-if="!engine" class="ed-empty">
+              <p class="ed-empty-title">还没打开项目</p>
+              <button class="ed-open lg" @click="showPicker = true">📂 选择开发机目录作为工作目录</button>
+              <p class="ed-hint">选择含 <code>config.json</code>＋<code>scenes/</code>＋<code>assets/</code> 的目录（自由浏览开发机）。</p>
+            </div>
+            <div v-else class="ams-frame" :style="{ width: fw + 'px', height: fh + 'px' }">
+              <Player v-if="state" :key="state.episode" :state="state" :theme="engine?.config" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" />
+            </div>
           </div>
-          <div v-else class="ams-frame" :style="{ width: fw + 'px', height: fh + 'px' }">
-            <Player v-if="state" :key="state.episode" :state="state" :theme="engine?.config" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" />
-          </div>
-          </div>
-          <div class="ed-split-v" @mousedown="startPVDrag"></div>
-          <div v-if="selNode != null" class="sc-prop">
-            <div class="sc-prop-head"><span class="sc-prop-title">结点 #{{ selNode }}（{{ sceneDirs[selNode]?.type }}）</span><button class="sc-apply" @click="applyNode">✔ 应用</button></div>
-            <textarea v-model="propText" class="sc-json" spellcheck="false" />
-          </div>
+          <div v-if="selNode != null" class="ed-main-split" @mousedown="startPVDrag"></div>
+          <div v-if="selNode != null" class="ed-main-right">
+            <div class="sc-prop">
+              <div class="sc-prop-head"><span class="sc-prop-title">结点 #{{ selNode }}（{{ sceneDirs[selNode]?.type }}）</span><button class="sc-apply" @click="applyNode">✔ 应用</button></div>
+              <textarea v-model="propText" class="sc-json" spellcheck="false" />
+            </div>
           </div>
         </main>
         <div class="ed-viewbar"><Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" /></div>
