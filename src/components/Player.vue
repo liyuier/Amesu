@@ -33,8 +33,11 @@ const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; 
   };
 };
 // 逐字淡入：按引擎的确定性 reveal 决定每个字符透明度（0/1 + opacity 过渡）；箱体按整句高度稳定
+const cgStyle = computed(() => props.state.cg ? ({ backgroundImage: `url("${props.state.cg.src}")`, opacity: String(props.state.cg.opacity) }) : {});
 const textChars = computed(() => Array.from(props.state.say?.text || ''));
 const charStyle = (i: number) => ({ opacity: i < (props.state.say?.reveal ?? 0) ? 1 : 0, transition: 'opacity .2s ease' });
+// 通用特效表：对具名 UI 块应用主题 effect.tags 的滤镜（如 stage/dialogue/name/hud）
+const blockFx = (name: string) => { const u = props.state.uiFx; if (!u || u.block !== name) return {}; const f = u.tags.map((t) => props.theme?.effect.tags[t]).filter(Boolean).join(' '); return f ? { filter: f } : {}; };
 const rain = computed(() => {
   const fx = props.state.effects.find((e) => e.type.includes('rain'));
   if (!fx) return [] as { x: number; delay: number; dur: number; len: number }[];
@@ -50,15 +53,16 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
 </script>
 
 <template>
-  <div class="ams-stage" @click="emit('advance')">
+  <div class="ams-stage" :style="blockFx('stage')" @click="emit('advance')">
     <div v-if="state.bg?.prev" class="ams-bg" :style="bgStyle(state.bg.prev)"></div>
     <div v-if="state.bg?.cur" class="ams-bg" :style="bgStyle(state.bg.cur)"></div>
     <div class="ams-sprites">
       <img v-for="sp in state.sprites" v-show="sp.ready && sp.src" :key="sp.id" class="ams-sprite"
            :src="sp.src" :data-id="sp.id" :style="spriteStyle(sp)" draggable="false" />
     </div>
+    <div v-if="state.cg" class="ams-cg" :style="cgStyle"></div>
     <div class="ams-fx"><span v-for="(d, i) in rain" :key="i" class="ams-drop" :style="dropStyle(d)"></span></div>
-    <div class="ams-dialogue" :style="dialogueStyle">
+    <div class="ams-dialogue" :style="{ ...dialogueStyle, ...blockFx('dialogue') }">
       <div v-if="state.say && state.say.who" class="ams-name">{{ state.say.who }}</div>
       <div class="ams-text"><span v-for="(c, i) in textChars" :key="i" :style="charStyle(i)">{{ c }}</span></div>
     </div>
@@ -66,6 +70,6 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
       <button v-for="(o, i) in state.choices.options" :key="i" class="ams-choice" :data-index="i"
               @click.stop="emit('choose', i)">{{ o.text }}</button>
     </div>
-    <div class="ams-hud">{{ hud }}</div>
+    <div class="ams-hud" :style="blockFx('hud')">{{ hud }}</div>
   </div>
 </template>

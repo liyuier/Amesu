@@ -48,6 +48,9 @@ export class Engine {
   activeTasks!: Task[];
   overlays!: RainOverlay[];
   chars!: Map<string, SpriteRuntime>;
+  cg: { src: string; opacity: number } | null = null;
+  _cgFade = 0;
+  uiFx: { block: string; tags: string[]; start: number; dur: number } | null = null;
   bg!: BgRuntime;
   camera!: CameraRuntime;
   lastSay!: SayRuntime | null;
@@ -449,6 +452,8 @@ export class Engine {
       .map((c) => ({ id: c.id, expr: c.expr, pos: c.xFrac, z: c.z, opacity: c.opacity, flip: c.scaleX < 0, color: c.color, ready: !!c.sprite, src: this._spriteSrc(c), speaking: c.id === this.lastSay?.who, fx: c.fx }))
       .sort((a, b) => a.z - b.z);
     return {
+      cg: this.cg ? { src: this._resolve(this.cg.src), opacity: this.cg.opacity } : null,
+      uiFx: this.uiFx && this.time - this.uiFx.start < this.uiFx.dur ? { block: this.uiFx.block, tags: this.uiFx.tags } : null,
       bg: (this.bg.cur || this.bg.prev) ? {
         cur: this.bg.cur ? { src: this._resolve(this._bgSrc || ''), opacity: this.bg.mix, pos: this._bgPos } : null,
         prev: this.bg.prev ? { src: this._resolve(this._bgPrevSrc || ''), opacity: 1 - this.bg.mix, pos: this._bgPos } : null,
@@ -506,5 +511,5 @@ export class Engine {
 
 }
 
-export interface Engine { _spawn(...args: unknown[]): Task | null; _taskTime(...args: unknown[]): Task; _taskBg(...args: unknown[]): Task; _taskChar(...args: unknown[]): Task; _taskSay(...args: unknown[]): Task; _taskCamera(...args: unknown[]): Task; _taskMove(...args: unknown[]): Task; _taskTween(...args: unknown[]): Task; _taskChoice(...args: unknown[]): Task; _taskEffect(...args: unknown[]): Task; _applyBgStart(...args: unknown[]): void; _applyCharStart(...args: unknown[]): void; _applyHide(...args: unknown[]): void; _xPos(...args: unknown[]): number; _applyBGM(...args: unknown[]): void; _applySFX(...args: unknown[]): void; _applyVoice(...args: unknown[]): void; _applyEffect(...args: unknown[]): void; _makeRain(...args: unknown[]): RainOverlay; _applySet(...args: unknown[]): void; _evalCond(...args: unknown[]): boolean; _applyControl(...args: unknown[]): void; _resolveChoice(...args: unknown[]): void;  _drawDialogue(...args: unknown[]): void; _render(...args: unknown[]): void; _drawBg(...args: unknown[]): void; _roundRect(...args: unknown[]): void; _drawChoice(...args: unknown[]): void; _drawHud(...args: unknown[]): void; _drawOverlays(...args: unknown[]): void; _drawChars(...args: unknown[]): void; _drawCover(...args: unknown[]): void; _drawFade(...args: unknown[]): void; _drawEnd(...args: unknown[]): void; _drawWrapped(...args: unknown[]): void; }
+export interface Engine { _spawn(...args: unknown[]): Task | null; _taskTime(...args: unknown[]): Task; _taskBg(...args: unknown[]): Task; _taskChar(...args: unknown[]): Task; _taskSay(...args: unknown[]): Task; _taskCamera(...args: unknown[]): Task; _taskMove(...args: unknown[]): Task; _taskTween(...args: unknown[]): Task; _taskChoice(...args: unknown[]): Task; _taskEffect(...args: unknown[]): Task; _applyBgStart(...args: unknown[]): void; _applyCharStart(...args: unknown[]): void; _applyHide(...args: unknown[]): void; _applyShot(...args: unknown[]): void; _defaultPositions(...args: unknown[]): number[]; _xPos(...args: unknown[]): number; _applyBGM(...args: unknown[]): void; _applyCg(...args: unknown[]): void; _applyFx(...args: unknown[]): void; _applySFX(...args: unknown[]): void; _applyVoice(...args: unknown[]): void; _applyEffect(...args: unknown[]): void; _makeRain(...args: unknown[]): RainOverlay; _applySet(...args: unknown[]): void; _evalCond(...args: unknown[]): boolean; _applyControl(...args: unknown[]): void; _resolveChoice(...args: unknown[]): void;  _drawDialogue(...args: unknown[]): void; _render(...args: unknown[]): void; _drawBg(...args: unknown[]): void; _roundRect(...args: unknown[]): void; _drawChoice(...args: unknown[]): void; _drawHud(...args: unknown[]): void; _drawOverlays(...args: unknown[]): void; _drawChars(...args: unknown[]): void; _drawCover(...args: unknown[]): void; _drawFade(...args: unknown[]): void; _drawEnd(...args: unknown[]): void; _drawWrapped(...args: unknown[]): void; }
 Object.assign(Engine.prototype, commands, renderer);

@@ -19,15 +19,18 @@ class SceneBuilder {
   _dirs!: Directive[];
   constructor(dirs) { this._dirs = dirs; }
   bg(src, o = {}) { this._dirs.push(D('bg', { src, ...o })); return this; }
+  cg(src, o = {}) { this._dirs.push(D('cg', { src, ...o })); return this; }
   char(id, o = {}) { this._dirs.push(D('char', { id, ...o })); return this; }
   say(who, text, o = {}) { this._dirs.push(D('say', { who, text, ...o })); return this; }
   hide(id) { this._dirs.push(D('hide', { id })); return this; }
+  shot(ids) { this._dirs.push(D('shot', { ids })); return this; }
   voice(src, o = {}) { this._dirs.push(D('voice', { src, ...o })); return this; }
   bgm(src, o = {}) { this._dirs.push(D('bgm', { src, ...o })); return this; }
   sfx(src, o = {}) { this._dirs.push(D('sfx', { src, ...o })); return this; }
   move(target, o = {}) { this._dirs.push(D('move', { target, ...o })); return this; }
   tween(target, props, o = {}) { this._dirs.push(D('tween', { target, props, ...o })); return this; }
   effect(name, o = {}) { this._dirs.push(D('effect', { name, ...o })); return this; }
+  fx(block, tags, o = {}) { this._dirs.push(D('fx', { block, tags, ...o })); return this; }
   camera(o = {}) { this._dirs.push(D('camera', { ...o })); return this; }
   wait(duration) { this._dirs.push(D('wait', { duration })); return this; }
   parallel(children) { this._dirs.push(D('parallel', { children })); return this; }

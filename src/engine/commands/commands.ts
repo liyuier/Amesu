@@ -14,6 +14,7 @@ export const commands = {
       case 'bg': return this._taskBg(d);
       case 'char': return this._taskChar(d);
       case 'hide': this._applyHide(d); return null;
+      case 'shot': this._applyShot(d); return null;
       case 'say': return this._taskSay(d);
       case 'wait': return this._taskTime('wait', toMs(d.duration));
       case 'camera': return this._taskCamera(d);
@@ -24,6 +25,8 @@ export const commands = {
       case 'sfx': this._applySFX(d); return null;
       case 'voice': this._applyVoice(d); return null;
       case 'effect': return this._taskEffect(d);
+      case 'cg': this._applyCg(d); return null;
+      case 'fx': this._applyFx(d); return null;
       default: return null;
     }
   }
@@ -224,6 +227,25 @@ export const commands = {
     this.lastSay = null;
   }
 ,
+  // 镜头=人物集合：按人数自动站位；未入镜角色淡出。Librian 的“默认立绘位置[len]”
+  _applyShot(this: Engine, d) {
+    const ids: string[] = (d.ids as string[]) || [...this.chars.keys()];
+    const pos = this._defaultPositions(ids.length);
+    for (const [id, c] of this.chars.entries()) {
+      const idx = ids.indexOf(id);
+      if (idx >= 0) { c.xFracTo = pos[idx]; c.leaving = false; if (c.opacityTo === 0) c.opacityTo = 1; }
+      else { c.leaving = true; c.opacityTo = 0; } // 不在镜头 → 淡出
+    }
+  }
+,
+  _defaultPositions(this: Engine, n) {
+    if (n <= 1) return [0.5];
+    if (n === 2) return [0.3, 0.7];
+    if (n === 3) return [0.2, 0.5, 0.8];
+    const arr: number[] = []; for (let i = 0; i < n; i++) arr.push(0.15 + (i * 0.7) / (n - 1));
+    return arr;
+  }
+,
   _applyHide(this: Engine, d) {
     const c = this.chars.get(d.id as string);
     if (c) { c.opacityTo = 0; c.leaving = true; } // 离场：淡出(exit 时长)，淡到 0 后由 _update 移除
@@ -234,6 +256,15 @@ export const commands = {
     if (at === 'left') return 0.18;
     if (at === 'right') return 0.82;
     return 0.5;
+  }
+,
+  _applyCg(this: Engine, d) {
+    this.cg = { src: (d.src as string) || '', opacity: 1 };
+    this._cgFade = toMs(d.fade) || this.config.effect.transition.crossfade;
+  }
+,
+  _applyFx(this: Engine, d) {
+    this.uiFx = { block: (d.block as string) || 'stage', tags: (d.tags as string[]) || [], start: this.time, dur: toMs(d.dur) || 400 };
   }
 ,
   _applyBGM(this: Engine, d) {

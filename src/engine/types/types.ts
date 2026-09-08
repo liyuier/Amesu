@@ -69,6 +69,8 @@ export interface EffectState {
 }
 export interface SceneState {
   bg: BgState | null;
+  cg: { src: string; opacity: number } | null;
+  uiFx: { block: string; tags: string[] } | null;
   sprites: SpriteState[];
   say: SayState | null;
   choices: ChoiceState | null;

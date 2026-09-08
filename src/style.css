@@ -63,6 +63,7 @@ button:hover { border-color:var(--accent); color:#fff; }
 .ams-sprites { position:absolute; inset:0; z-index:1; }
 .ams-sprite { position:absolute; bottom:16%; height:64%; width:auto; transform-origin:bottom center; -webkit-user-drag:none; -webkit-user-select:none; user-select:none; pointer-events:none; }
 .ams-fx { position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
+.ams-cg { position:absolute; inset:0; background-size:cover; background-position:center; z-index:2; pointer-events:none; }
 .ams-drop { position:absolute; top:-40px; width:2px; background:rgba(200,225,255,.65); border-radius:2px; animation-name:rainfall; animation-timing-function:linear; animation-iteration-count:infinite; }
 @keyframes rainfall { from{ transform:translateY(0) translateX(0);} to{ transform:translateY(820px) translateX(-18px);} }
 .ams-dialogue { position:absolute; left:24px; right:24px; bottom:16px; padding:0 22px; min-height:92px; z-index:3; display:flex; flex-direction:column; justify-content:flex-start; overflow:hidden;
@@ -70,6 +71,8 @@ button:hover { border-color:var(--accent); color:#fff; }
 .ams-name { font-weight:600; color:var(--ams-name, #a0552f); font-size:20px; margin-bottom:6px; }
 .ams-text { font-size:20px; line-height:1.6; white-space:pre-wrap; color:var(--ams-text, #4a3a2c); }
 .ams-choice-wrap { position:absolute; left:0; right:0; bottom:150px; z-index:4; display:flex; flex-direction:column; gap:12px; align-items:center; }
+@keyframes amsFadeIn { from{opacity:0} to{opacity:1} }
+.ams-choice-wrap { animation: amsFadeIn .25s ease; }
 .ams-choice { pointer-events:auto; width:300px; padding:12px 24px; background:var(--ams-choice-bg, rgba(255,250,240,.96)); color:var(--ams-choice-text, #46321f); border:1px solid var(--ams-choice-border, rgba(180,140,100,.55)); border-radius:12px; font-size:18px; font-family:inherit; cursor:pointer; }
 .ams-choice:hover { border-color:var(--accent); color:#8a4a2a; transform:translateY(-1px); }
 .ams-hud { position:absolute; top:10px; left:14px; z-index:5; font:12px/1.4 monospace; color:var(--ams-hud, rgba(255,235,200,.85)); }
