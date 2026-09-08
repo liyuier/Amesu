@@ -8,6 +8,7 @@ import Toolbar from './components/Toolbar.vue';
 import Inspector from './components/Inspector.vue';
 import DirectoryPicker from './components/DirectoryPicker.vue';
 import StoryCanvas from './components/StoryCanvas.vue';
+import { Image as ImageIcon, FolderOpen, Search, ChevronRight } from 'lucide-vue-next';
 import { useProject } from './composables/useProject.ts';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -20,7 +21,19 @@ const state = ref<SceneState | null>(null);
 const inspect = ref('');
 const sceneText = ref('');
 const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
-const sideTab = ref<'script'|'assets'|'inspect'>('assets');
+const sideTab = ref<'assets'|'fs'|'inspect'>('assets');
+// 素材按媒体类型分组
+const assetGroups = computed(() => ([
+  { label: '图片', items: assets.value.filter((a) => ['png','jpg','jpeg','webp','gif'].includes(a.kind)) },
+  { label: '音频', items: assets.value.filter((a) => ['mp3','wav','ogg'].includes(a.kind)) },
+  { label: '视频', items: assets.value.filter((a) => ['mp4','webm'].includes(a.kind)) },
+]));
+// 文件系统浏览器
+const fsPath = ref(''); const fsParent = ref(''); const fsDirs = ref<{name:string;isProject:boolean}[]>([]); const fsFiles = ref<{name:string}[]>([]);
+async function listFs(p: string) { try { const d = await (await fetch('/api/fs/list?path=' + encodeURIComponent(p) + '&files=1')).json(); fsPath.value = d.path; fsParent.value = d.parent; fsDirs.value = d.dirs; fsFiles.value = d.files; } catch (e) { fsDirs.value = []; fsFiles.value = []; } }
+function fsOpen(n: string) { listFs(fsPath.value ? fsPath.value + '/' + n : n); }
+function fsUp() { listFs(fsParent.value); }
+watch(name, (n) => { if (n) { loadAssets(n); listFs(n); } });
 // 时间轴：当前场景的指令序列，高亮当前步
 import { computed } from 'vue';
 const sceneDirs = computed<{ type: string; who?: string }[]>(() => {
@@ -32,7 +45,7 @@ const sceneDirs = computed<{ type: string; who?: string }[]>(() => {
 
 // 分栏尺寸 + 预览(等比)尺寸
 const sideWidth = ref(300);
-const bottomHeight = ref(150);
+const bottomHeight = ref(240);
 const mainEl = ref<HTMLElement | null>(null);
 const fw = ref(0); const fh = ref(0);
 function updateFrame() {
@@ -89,7 +102,7 @@ async function applyScene() {
 }
 async function loadAssets(path: string) { try { const r = await fetch('/api/asset-list?path=' + encodeURIComponent(path)); assets.value = await r.json(); } catch (e) { assets.value = []; } }
 watch(loaded, (v) => { if (v && v.project) launch(v.project, v.assetBase); });
-watch(name, (n) => { if (n) loadAssets(n); }); // 项目路径确定后再拉取素材列表
+
 onMounted(() => {
   if (mainEl.value) { ro = new ResizeObserver(updateFrame); ro.observe(mainEl.value); updateFrame(); }
   // 脚本轨 HMR：dev-server 广播 reload → 重新打开当前项目（重取/转译 .ts 剧本）
@@ -111,21 +124,31 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
     <div class="ed-mid">
       <aside class="ed-side" :style="{ width: sideWidth + 'px' }">
         <div class="ed-activity">
-          <button class="ed-activity-btn" :class="{on: sideTab==='script'}" title="剧本" @click="sideTab='script'">📜</button>
-          <button class="ed-activity-btn" :class="{on: sideTab==='assets'}" title="素材" @click="sideTab='assets'">🎨</button>
-          <button class="ed-activity-btn" :class="{on: sideTab==='inspect'}" title="检查器" @click="sideTab='inspect'">🔍</button>
+          <button class="ed-activity-btn" :class="{on: sideTab==='assets'}" title="素材" @click="sideTab='assets'"><ImageIcon /></button>
+          <button class="ed-activity-btn" :class="{on: sideTab==='fs'}" title="文件系统" @click="sideTab='fs'"><FolderOpen /></button>
+          <button class="ed-activity-btn" :class="{on: sideTab==='inspect'}" title="检查器" @click="sideTab='inspect'"><Search /></button>
         </div>
         <div class="ed-tool">
           <template v-if="engine">
-            <Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" />
-            <template v-if="sideTab==='script'">
-              <label class="ed-label">剧本（JSON，改后点“应用”；画布改动实时同步）</label>
-              <textarea v-model="sceneText" class="ed-scene" spellcheck="false" />
-              <button class="ed-apply" @click="applyScene">✔ 应用到预览</button>
+            <template v-if="sideTab==='assets'">
+              <div v-for="g in assetGroups" :key="g.label" class="ed-agroup">
+                <div class="ed-agroup-title">{{ g.label }}</div>
+                <div v-if="g.items.length" class="ed-assets">
+                  <div v-for="a in g.items" :key="a.rel" class="ed-asset" :title="a.rel">
+                    <img v-if="['png','jpg','jpeg','webp','gif'].includes(a.kind)" :src="a.url" class="ed-asset-thumb" />
+                    <audio v-else-if="['mp3','wav','ogg'].includes(a.kind)" :src="a.url" controls class="ed-asset-audio" />
+                    <video v-else-if="['mp4','webm'].includes(a.kind)" :src="a.url" controls class="ed-asset-video" />
+                    <span class="ed-asset-name">{{ a.rel }}</span>
+                  </div>
+                </div>
+                <div v-else class="ed-agroup-empty">（无 {{ g.label }}）</div>
+              </div>
             </template>
-            <template v-else-if="sideTab==='assets'">
-              <div class="ed-assets"><span class="ed-assets-title">素材：</span>
-                <span v-for="a in assets" :key="a.rel" class="ed-asset" :title="a.rel"><img v-if="['png','jpg','jpeg','webp','gif'].includes(a.kind)" :src="a.url" class="ed-asset-thumb" />{{ a.rel }}</span>
+            <template v-else-if="sideTab==='fs'">
+              <div class="ed-fs">
+                <div class="ed-fs-bar"><button @click="fsUp" :disabled="!fsParent">← 上一级</button><span class="ed-fs-path">{{ fsPath || '（根）' }}</span></div>
+                <div v-for="d in fsDirs" :key="d.name" class="ed-fs-item" @click="fsOpen(d.name)"><FolderOpen class="ed-fs-icon" /> {{ d.name }}{{ d.isProject ? '（项目）' : '' }}</div>
+                <div v-for="f in fsFiles" :key="f.name" class="ed-fs-item fs-file"><span class="ed-fs-dot">·</span>{{ f.name }}</div>
               </div>
             </template>
             <template v-else-if="sideTab==='inspect'">
@@ -147,6 +170,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
             <Player v-if="state" :key="state.episode" :state="state" :theme="engine?.config" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" />
           </div>
         </main>
+        <div class="ed-viewbar"><Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" /></div>
         <div class="ed-split-h" @mousedown="startHDrag"></div>
         <section class="ed-bottom" :style="{ height: bottomHeight + 'px' }">
           <div class="ed-bottom-title">画布 · 当前场景（拖拽改序 / 点结点编辑 / 连线分支；橙色=当前步）</div>

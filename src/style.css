@@ -52,6 +52,24 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans
 .ed-activity-btn:hover { border-color:var(--accent); }
 .ed-activity-btn.on { background:rgba(224,138,90,.20); }
 .ed-tool { flex:1; padding:0 10px; overflow:auto; min-width:0; }
+.ed-viewbar { flex:0 0 auto; display:flex; justify-content:center; padding:6px; background:var(--side); border-top:1px solid var(--line); }
+.ed-viewbar .ed-toolbar { margin:0; }
+.ed-agroup { margin-bottom:12px; }
+.ed-agroup-title { font-size:12px; color:var(--accent2); margin-bottom:6px; }
+.ed-assets { display:flex; flex-wrap:wrap; gap:8px; }
+.ed-asset { display:flex; flex-direction:column; gap:4px; font:11px monospace; color:var(--muted); width:104px; }
+.ed-asset-thumb { width:104px; height:66px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
+.ed-asset-audio { width:104px; height:30px; }
+.ed-asset-video { width:104px; height:66px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
+.ed-asset-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ed-agroup-empty { color:var(--muted); font-size:12px; }
+.ed-fs-bar { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.ed-fs-path { font:11px monospace; color:#cbd2df; word-break:break-all; }
+.ed-fs-item { display:flex; align-items:center; gap:6px; padding:5px 6px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); }
+.ed-fs-item:hover { background:#2a2b35; }
+.ed-fs-icon { width:16px; height:16px; }
+.ed-fs-file { color:var(--muted); cursor:default; }
+.ed-fs-dot { color:var(--muted); }
 .ed-apply { margin-top:8px; }
 
 /* 中央预览：占满剩余（master），居中 */

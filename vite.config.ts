@@ -71,11 +71,13 @@ function projectApi(): Plugin {
             const rel = q.get('path') || START;
             const dir = safeJoin(BASE, rel);
             if (!dir || !fs.existsSync(dir)) { res.writeHead(404); res.end('not found'); return; }
-            const dirs = fs.readdirSync(dir, { withFileTypes: true })
-              .filter((d) => d.isDirectory() && !d.name.startsWith('.') && d.name !== 'node_modules' && d.name !== '.git')
+            const entries = fs.readdirSync(dir, { withFileTypes: true })
+              .filter((e) => !e.name.startsWith('.') && e.name !== 'node_modules' && e.name !== '.git');
+            const dirs = entries.filter((d) => d.isDirectory())
               .map((d) => ({ name: d.name, isProject: fs.existsSync(path.join(dir, d.name, 'config.json')), hasScenes: fs.existsSync(path.join(dir, d.name, 'scenes')) }))
               .sort((a, b) => Number(b.isProject) - Number(a.isProject) || a.name.localeCompare(b.name));
-            return sendJson(res, { path: rel, parent: parentRel(rel), dirs });
+            const files = q.get('files') === '1' ? entries.filter((e) => e.isFile()).map((e) => ({ name: e.name, size: fs.statSync(path.join(dir, e.name)).size })) : [];
+            return sendJson(res, { path: rel, parent: parentRel(rel), dirs, files });
           }
           if (p === '/api/project') {
             const rel = q.get('path') ?? '';
