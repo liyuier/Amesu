@@ -36,20 +36,24 @@ export interface AmesuParticle { rain: { count: number; lenMin: number; lenVar: 
 
 export interface AmesuPlaceholder { size: number; vignetteA: number; glowA: number; skinA: number; }
 
+export interface AmesuAssets { bg: string; char: string; bgm: string; sfx: string; voice: string; }
 export interface AmesuDefaults { charColor: string; charW: number; charH: number; effectDuration: number; }
 
+/** 主题元规范（Theme 的 Schema）。所有可调项（字体/颜色/布局/粒子/占位/默认素材/默认值）都声明在此。 */
 export interface AmesuConfig {
   fonts: AmesuFonts;
   colors: AmesuColors;
   layout: AmesuLayout;
   particle: AmesuParticle;
   placeholder: AmesuPlaceholder;
+  assets: AmesuAssets;
   defaults: AmesuDefaults;
 }
 
 const F = '"Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei","PingFang SC",sans-serif';
 const WQ = '"Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei","PingFang SC","WenQuanYi Micro Hei",sans-serif';
 
+// 基础主题默认值（由 theme/base.ts 提供具体取值）
 export const DEFAULT_CONFIG: AmesuConfig = {
   fonts: {
     family: F,
@@ -81,17 +85,18 @@ export const DEFAULT_CONFIG: AmesuConfig = {
     ],
   },
   placeholder: { size: 256, vignetteA: 0.35, glowA: 0.10, skinA: 0.25 },
+  assets: { bg: 'bg/city_warm.jpg', char: 'char/hero_happy.png', bgm: 'audio/bgm/JieWang-piano.mp3', sfx: 'audio/sfx/click.wav', voice: 'audio/voice/voice.wav' },
   defaults: { charColor: '#8fd0ff', charW: 520, charH: 760, effectDuration: 3000 },
 };
 
-function isObj(v: unknown): v is Record<string, unknown> { return !!v && typeof v === 'object' && !Array.isArray(v); }
-function merge<T>(base: T, patch: unknown): T {
-  if (!isObj(base) || !isObj(patch)) return (patch === undefined ? base : (patch as T));
-  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
-  for (const k of Object.keys(patch)) {
-    const b = (base as Record<string, unknown>)[k], p = patch[k];
-    out[k] = isObj(b) && isObj(p) ? merge(b, p) : p;
+export function isObj(v: unknown): v is Record<string, unknown> { return !!v && typeof v === 'object' && !Array.isArray(v); }
+export function mergeTheme(base: unknown, patch: unknown): AmesuConfig {
+  const b = isObj(base) ? base : {};
+  const p = isObj(patch) ? patch : {};
+  const out: Record<string, unknown> = { ...b };
+  for (const k of Object.keys(p)) {
+    const bv = b[k], pv = p[k];
+    out[k] = isObj(bv) && isObj(pv) ? mergeTheme(bv, pv) : pv;
   }
-  return out as T;
+  return out as unknown as AmesuConfig;
 }
-export function mergeConfig(patch?: Partial<AmesuConfig> | null): AmesuConfig { return patch ? merge(DEFAULT_CONFIG, patch) : DEFAULT_CONFIG; }

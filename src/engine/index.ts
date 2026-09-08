@@ -15,7 +15,6 @@
 export { createEngine } from './core/engine.js';
 export { story, loadStory, storyToStory } from './content/story.js';
 export { Easing, clamp, lerp } from './platform/util.js';
-export { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from './platform/placeholder.js';
 export { AudioManager } from './platform/audio.js';
-export { DEFAULT_CONFIG, mergeConfig } from './config.js';
-export type { AmesuConfig, AmesuFonts, AmesuColors, AmesuLayout, AmesuParticle, AmesuPlaceholder, AmesuDefaults } from './config.js';
+export { DEFAULT_CONFIG, resolveTheme, themes, DEFAULT_THEME, mergeTheme, type ThemeRef } from './theme/index.js';
+export type { AmesuConfig, AmesuFonts, AmesuColors, AmesuLayout, AmesuParticle, AmesuPlaceholder, AmesuAssets, AmesuDefaults } from './theme/index.js';

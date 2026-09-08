@@ -16,9 +16,8 @@
 
 import { loadStory } from '../content/story.js';
 import { clamp, lerp, ease, toMs, TAU } from '../platform/util.js';
-import { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from '../platform/placeholder.js';
 import { AudioManager } from '../platform/audio.js';
-import { mergeConfig, type AmesuConfig } from '../config.js';
+import { resolveTheme, mergeTheme, type AmesuConfig, type ThemeRef } from '../theme/index.js';
 import type { Story, CharacterDef, Task, EngineOptions, Directive, EngineRunState, RainOverlay, SpriteRuntime, BgRuntime, CameraRuntime, SayRuntime, ChoiceRuntime, FadeRuntime, Project, Drawable, SceneState } from '../types/types.js';
 import { renderer } from '../render/renderer.js';
 import { commands } from '../commands/commands.js';
@@ -77,7 +76,8 @@ export class Engine {
     this.dpr = options.dpr || 1;
     this.assetBase = options.assetBase || meta.res || './assets';
     this.resolveAsset = options.resolveAsset ?? null;
-    this.config = mergeConfig(options.config);
+    const metaTheme = (meta as { theme?: unknown }).theme as ThemeRef | undefined;
+    this.config = mergeTheme(resolveTheme(options.theme ?? metaTheme), options.config);
     this.mode = options.mode || 'interactive'; // 'interactive' | 'deterministic'
     this.story = loadStory(project.scripts || project);
     this.characters = Object.assign({}, meta.characters || {}, this.story.characters || {});
@@ -157,15 +157,13 @@ export class Engine {
     return img;
   }
 
-  // 背景 drawable：真实图或占位渐变（缓存）
+  // 背景 drawable：真实图；缺失时回退到主题声明的默认素材（如 demo 提供的内容），再缺则用 colors.fallbackBg
   async _bg(src) {
     const img = await this._loadImage(src, 'bg');
     if (img) return img;
-    const key = 'ph_bg_' + src;
-    if (this._imgCache.has(key)) return this._imgCache.get(key);
-    const c = makeBackground(src || 'bg', this.res.width, this.res.height);
-    this._imgCache.set(key, c);
-    return c;
+    const def = this.config.assets.bg;
+    if (def && def !== src) { const d = await this._loadImage(def, 'bg'); if (d) { this._imgCache.set(src, d); return d; } }
+    return null;
   }
 
   _spriteSrc(c: SpriteRuntime): string {
@@ -178,11 +176,8 @@ export class Engine {
     const src = `char/${id}_${expr || 'normal'}.png`;
     const img = await this._loadImage(src, 'char');
     if (img) return img;
-    const key = 'ph_char_' + id + '_' + (expr || 'normal');
-    if (this._imgCache.has(key)) return this._imgCache.get(key);
-    const c = makeCharacter(id, expr || 'normal', color || this.config.defaults.charColor, this.config.defaults.charW, this.config.defaults.charH);
-    this._imgCache.set(key, c);
-    return c;
+    const def = this.config.assets.char; if (def) { const key = 'def_char_' + def; const url = this._resolve(def); const d = await this._loadImage(url, 'char'); if (d) { this._imgCache.set(src, d); return d; } }
+    return null; // 无立绘：按配置渲染（跳过）
   }
 
   async _audio(kind, src) {
@@ -195,9 +190,9 @@ export class Engine {
       return await ctx.decodeAudioData(buf);
     } catch (e) {
       const ctx = this.audio.ensure();
-      if (kind === 'bgm') return makeBGM(ctx);
-      if (kind === 'voice') return makeVoice(ctx);
-      return makeSFX(ctx, 'click');
+      const def = kind === 'bgm' ? this.config.assets.bgm : (kind === 'voice' ? this.config.assets.voice : this.config.assets.sfx);
+      if (def && def !== src) { try { const r = await fetch(this._resolve(def)); if (r.ok) return await ctx.decodeAudioData(await r.arrayBuffer()); } catch (e2) { /* 忽略 */ } }
+      return null; // 无音频：静音（不再合成占位音）
     }
   }
 
@@ -360,8 +355,9 @@ export class Engine {
   _sfxBuf(kind) {
     if (!this.sfxCache) this.sfxCache = {};
     if (this.sfxCache[kind]) return this.sfxCache[kind];
-    try { this.sfxCache[kind] = makeSFX(this.audio.ensure(), kind); } catch (e) { return null; }
-    return this.sfxCache[kind];
+    // 异步预载（fire-and-forget）：首次通常未就绪，返回 null（播放时忽略）
+    this._audio(kind, 'audio/sfx/' + kind + '.wav').then((s) => { this.sfxCache[kind] = s; }).catch(() => { /* 忽略 */ });
+    return null;
   }
 
   // ---------- 渲染 ----------
