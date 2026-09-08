@@ -5,7 +5,7 @@
 import { ref, watch, nextTick, onMounted } from 'vue';
 import mermaid from 'mermaid';
 
-mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'base', flowchart: { curve: 'basis', padding: 12, nodeSpacing: 40, rankSpacing: 70, useMaxWidth: false } });
+mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'dark', themeVariables: { fontSize: '14px', fontFamily: 'Noto Sans SC, sans-serif' }, flowchart: { curve: 'basis', padding: 12, nodeSpacing: 40, rankSpacing: 70, useMaxWidth: false } });
 
 type D = { type: string; [k: string]: unknown };
 const props = defineProps<{ sceneDirs: D[]; sceneName: string; currentIndex?: number }>();
