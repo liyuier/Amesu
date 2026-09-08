@@ -139,7 +139,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
     </header>
 
     <div class="ed-mid">
-      <aside class="ed-side" :style="{ width: sideWidth + 'px' }">
+      <aside class="ed-side" :class="{ collapsed: toolHidden }" :style="{ width: sideWidth + 'px' }">
         <div class="ed-activity">
           <button class="ed-activity-btn" :class="{on: sideTab==='assets'}" title="素材(再点收起)" @click="toggleAct('assets')"><ImageIcon /></button>
           <button class="ed-activity-btn" :class="{on: sideTab==='fs'}" title="文件系统(再点收起)" @click="toggleAct('fs')"><FolderOpen /></button>
