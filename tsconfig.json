@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@engine": ["src/engine/index.ts"] },
     "target": "ES2022",
     "module": "ESNext",
+    "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": false,

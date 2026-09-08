@@ -18,3 +18,5 @@ export { Easing, clamp, lerp } from './platform/util.js';
 export { AudioManager } from './platform/audio.js';
 export { DEFAULT_CONFIG, resolveTheme, themes, DEFAULT_THEME, mergeTheme, type ThemeRef } from './theme/index.js';
 export type { AmesuConfig, AmesuFonts, AmesuColors, AmesuLayout, AmesuParticle, AmesuPlaceholder, AmesuAssets, AmesuDefaults } from './theme/index.js';
+export type { Engine } from './core/engine.js';
+export type { Project, Story, SceneState, SpriteRuntime, SayRuntime, ChoiceRuntime, BgRuntime, CameraRuntime, FadeRuntime, Directive, Task, EngineRunState, CharacterDef, Drawable, EngineOptions } from './types/types.js';
