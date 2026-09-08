@@ -219,12 +219,13 @@ export const commands = {
     const frac = this._xPos(d.at);
     this._charSprite(d.id, d.expr, color).then((sprite) => {
       const prev: Partial<SpriteRuntime> = this.chars.get(d.id as string) || {};
+      const from = prev.xFrac ?? frac, to = (d.at !== undefined ? frac : (prev.xFracTo ?? prev.xFrac ?? frac));
+      const opFrom = d.effect === 'fade-in' ? 0 : (prev.opacity ?? 1);
       this.chars.set(d.id, {
         id: d.id, sprite, expr: d.expr, color,
-        xFrac: prev.xFrac ?? frac, xFracTo: (d.at !== undefined ? frac : (prev.xFracTo ?? prev.xFrac ?? frac)), z: d.z ?? prev.z ?? 10,   // 未给 at 则保持当前位置
-        opacity: d.effect === 'fade-in' ? 0 : (prev.opacity ?? 1),
-        opacityFrom: d.effect === 'fade-in' ? 0 : (prev.opacity ?? 1), opacityTo: 1,
-        scaleX: d.flip ? -1 : (prev.scaleX ?? 1),
+        xFrac: from, xFracTo: to, xFracFrom: from, xFracStart: this.time,   // 记录起点，按归一化时长插值 → 任何距离都跑满 duration
+        opacity: opFrom, opacityFrom: opFrom, opacityTo: 1, opacityStart: this.time,
+        z: d.z ?? prev.z ?? 10, scaleX: d.flip ? -1 : (prev.scaleX ?? 1),
         fx: d.fx ? [...d.fx] : (prev.fx ?? []),
       });
     });

@@ -344,14 +344,13 @@ export class Engine {
     // 人物淡入/淡出 + 平滑移动：向目标值线性插值（400ms 淡入淡出 / 500ms 移动）
     const EF = this.config.effect.character; // 时长来自【主题】；补间本身由引擎(确定性)执行
     for (const c of this.chars.values()) {
-      if (c.opacityTo !== undefined && c.opacity !== c.opacityTo) {
-        const dur = c.opacityTo > c.opacity ? EF.enter.duration : EF.exit.duration;
-        const st = dt / dur, d = c.opacityTo - c.opacity;
-        c.opacity = clamp(Math.abs(d) <= st ? c.opacityTo : c.opacity + Math.sign(d) * st, 0, 1); // 一步到位，避免过冲抖动
+      // 归一化时长插值：任何距离/变化都正好跑满 duration（避免“小变化瞬间完成”的假快）
+      if (c.opacityTo !== undefined && c.opacityStart !== undefined) {
+        const dur = c.opacityTo > c.opacityFrom! ? EF.enter.duration : EF.exit.duration;
+        c.opacity = clamp(lerp(c.opacityFrom ?? 0, c.opacityTo, clamp((this.time - c.opacityStart) / dur, 0, 1)), 0, 1);
       }
-      if (c.xFracTo !== undefined && c.xFrac !== c.xFracTo) {
-        const st = dt / EF.move.duration, d = c.xFracTo - (c.xFrac || 0);
-        c.xFrac = clamp(Math.abs(d) <= st ? c.xFracTo : (c.xFrac || 0) + Math.sign(d) * st, 0, 1);
+      if (c.xFracTo !== undefined && c.xFracFrom !== undefined && c.xFracStart !== undefined) {
+        c.xFrac = lerp(c.xFracFrom, c.xFracTo, clamp((this.time - c.xFracStart) / EF.move.duration, 0, 1));
       }
     }
     // 离场：淡到 0 后移除
