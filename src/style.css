@@ -28,6 +28,12 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans
 .ed-bottom-title { font-size:12px; color:var(--muted); padding:6px 12px; border-bottom:1px solid var(--line); }
 .ed-bottom-body { padding:10px 14px; }
 .ed-hint-inline { color:var(--muted); font-size:12px; }
+.ed-timeline { display:flex; flex-wrap:wrap; gap:6px; }
+.ed-step { display:flex; align-items:center; gap:5px; padding:4px 8px; border:1px solid var(--line); border-radius:6px; font:12px monospace; color:var(--muted); }
+.ed-step.cur { border-color:var(--accent); color:#fff; background:rgba(224,138,90,.18); }
+.ed-step-no { color:var(--muted); font-size:10px; }
+.ed-step-type { color:#cbd2df; }
+.ed-step-who { color:var(--accent2); }
 
 /* 左侧工具区：延展到屏幕边缘（无卡片） */
 .ed-side { width:300px; flex:0 0 auto; background:var(--side); border-right:1px solid var(--line); overflow-y:auto; overflow-x:hidden; padding:12px 14px; scrollbar-gutter:stable; }

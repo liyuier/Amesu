@@ -18,6 +18,14 @@ const engine = ref<Engine | null>(null);
 const state = ref<SceneState | null>(null);
 const inspect = ref('');
 const sceneText = ref('');
+// 时间轴：当前场景的指令序列，高亮当前步
+import { computed } from 'vue';
+const sceneDirs = computed<{ type: string; who?: string }[]>(() => {
+  const scripts = loaded.value?.project?.scripts as { scenes?: Record<string, { type: string; who?: string }[]> } | undefined;
+  const scene = state.value?.scene as string;
+  if (!scripts?.scenes || !scene) return [];
+  return scripts.scenes[scene] ?? [];
+});
 
 // 分栏尺寸 + 预览(等比)尺寸
 const sideWidth = ref(300);
@@ -120,9 +128,15 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
         </main>
         <div class="ed-split-h" @mousedown="startHDrag"></div>
         <section class="ed-bottom" :style="{ height: bottomHeight + 'px' }">
-          <div class="ed-bottom-title">时间轴 / 演出（工具区）</div>
+          <div class="ed-bottom-title">时间轴 / 演出（当前场景指令，高亮当前步）</div>
           <div class="ed-bottom-body">
-            <p class="ed-hint-inline">这里预留给：时间线、资源/素材面板、分支导航等工具。当前为占位。</p>
+            <div class="ed-timeline">
+              <div v-for="(d, i) in sceneDirs" :key="i" class="ed-step" :class="{ cur: i === state?.index }">
+                <span class="ed-step-no">{{ i }}</span>
+                <span class="ed-step-type">{{ d.type }}</span>
+                <span class="ed-step-who" v-if="d.who">{{ d.who }}</span>
+              </div>
+            </div>
           </div>
         </section>
       </div>
