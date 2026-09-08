@@ -28,10 +28,11 @@ const sceneText = ref('');
 const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
 const selNode = ref<number | null>(null);
 const propText = ref('');
+watch(selNode, (i) => { propText.value = i != null ? JSON.stringify(sceneDirs.value[i] ?? {}, null, 2) : ''; });
 const toolHidden = ref(false);
-const previewW = ref(640);
+const scW = ref(360);
 let pvDrag: { x: number; w: number } | null = null;
-function startPVDrag(e: MouseEvent) { pvDrag = { x: e.clientX, w: previewW.value }; const mv = (ev: MouseEvent) => { if (pvDrag) previewW.value = pvDrag.w + (ev.clientX - pvDrag.x); }; const up = () => { pvDrag = null; window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); }; window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); }
+function startPVDrag(e: MouseEvent) { pvDrag = { x: e.clientX, w: scW.value }; const mv = (ev: MouseEvent) => { if (pvDrag) scW.value = pvDrag.w - (ev.clientX - pvDrag.x); }; const up = () => { pvDrag = null; window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); }; window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); }
 const vidEl = ref<HTMLElement | null>(null); let vidPlayer: any = null;
 const sideTab = ref<'assets'|'fs'|'inspect'|null>('assets');
 function toggleAct(t: 'assets'|'fs'|'inspect') { if (sideTab.value === t) { toolHidden.value = !toolHidden.value; } else { sideTab.value = t; toolHidden.value = false; } }
@@ -174,11 +175,13 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
           </template>
         </div>
       </aside>
-      <div class="ed-split-v" @mousedown="startVDrag"></div>
+      <div v-if="!toolHidden" class="ed-split-v" @mousedown="startVDrag"></div>
 
       <div class="ed-col">
         <main class="ed-main">
-          <div class="ed-main-left" ref="previewEl" :style="{ width: selNode != null ? previewW + 'px' : '100%' }">
+          <div class="ed-main-left">
+            <div class="ed-viewbar"><Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" /></div>
+            <div class="ed-preview-area" ref="previewEl">
             <div v-if="!engine" class="ed-empty">
               <p class="ed-empty-title">还没打开项目</p>
               <button class="ed-open lg" @click="showPicker = true">📂 选择开发机目录作为工作目录</button>
@@ -187,16 +190,16 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
             <div v-else class="ams-frame" :style="{ width: fw + 'px', height: fh + 'px' }">
               <Player v-if="state" :key="state.episode" :state="state" :theme="engine?.config" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" />
             </div>
+            </div>
           </div>
           <div v-if="selNode != null" class="ed-main-split" @mousedown="startPVDrag"></div>
-          <div v-if="selNode != null" class="ed-main-right">
+          <div v-if="selNode != null" class="ed-main-right" :style="{ width: scW + 'px' }">
             <div class="sc-prop">
               <div class="sc-prop-head"><span class="sc-prop-title">结点 #{{ selNode }}（{{ sceneDirs[selNode]?.type }}）</span><button class="sc-apply" @click="applyNode">✔ 应用</button></div>
               <textarea v-model="propText" class="sc-json" spellcheck="false" />
             </div>
           </div>
         </main>
-        <div class="ed-viewbar"><Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" /></div>
         <div class="ed-split-h" @mousedown="startHDrag"></div>
         <section class="ed-bottom" :style="{ height: bottomHeight + 'px' }">
           <div class="ed-bottom-title">画布 · 当前场景（拖拽改序 / 点结点编辑 / 连线分支；橙色=当前步）</div>
