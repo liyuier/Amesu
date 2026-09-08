@@ -45,7 +45,7 @@ async function renderGraph() {
     const { svg } = await mermaid.render('story-tree-' + seq, buildGraph());
     if (seq !== renderSeq) return;
     wrap.value.innerHTML = svg;
-    document.querySelector('[id*="dstory-tree-"]')?.remove(); // 只删 mermaid 遗留临时容器(带 d 前缀)，不动注入的 svg(无 d 前缀)
+    setTimeout(() => { document.querySelectorAll('[id^="dstory-"]').forEach((e) => e.parentNode && e.remove()); }, 60); // 彻底清理 mermaid 遗留临时容器(防溢出滚动条)
     const svgEl = wrap.value.querySelector('svg');
     if (!svgEl) return;
     const bbox = svgEl.getBBox();

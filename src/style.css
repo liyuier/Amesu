@@ -183,5 +183,5 @@ button:hover { border-color:var(--accent); color:#fff; }
 .ed-view-toggle button { font-size:12px; padding:3px 10px; }
 .ed-view-toggle button.on { border-color:var(--accent); color:#fff; }
 
-/* 视频叠加层：居中弹层(在背景之上、对话之前) */
-.ams-video { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:auto; max-width:min(56%, 720px); max-height:56%; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,.6); z-index:7; background:#000; }
+/* CG 视频：全屏封面，替代/遮盖界面，播放完自动退出 */
+.ams-video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000; z-index:7; cursor:pointer; }
