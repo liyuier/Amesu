@@ -102,7 +102,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
             <p class="ed-hint">选择含 <code>config.json</code>＋<code>scenes/</code>＋<code>assets/</code> 的目录（自由浏览开发机）。</p>
           </div>
           <div v-else class="ams-frame" :style="{ width: fw + 'px', height: fh + 'px' }">
-            <Player v-if="state" :state="state" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" />
+            <Player v-if="state" :state="state" :theme="engine?.config" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" />
           </div>
         </main>
         <div class="ed-split-h" @mousedown="startHDrag"></div>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // 播放器：把 SceneState 渲染成【全 DOM】—— 这就是“交付物”的画面内容。Vue 第一公民。
 import { computed } from 'vue';
-import { DEFAULT_CONFIG, type SceneState } from '@engine';
+import { DEFAULT_CONFIG, type SceneState, type AmesuConfig } from '@engine';
 const RAIN = DEFAULT_CONFIG.particle.rain[0];
-const props = defineProps<{ state: SceneState }>();
+const props = defineProps<{ state: SceneState; theme?: AmesuConfig }>();
 const emit = defineEmits<{ advance: []; choose: [index: number] }>();
 
 const bgStyle = computed(() => ({
@@ -18,12 +18,18 @@ const dialogueStyle = computed(() => {
   const h = 34 + lines * 32 + 22;                // 名字行 + 文本行 + 内边距
   return { minHeight: Math.min(h, 200) + 'px', transition: 'height .3s ease' };
 });
-const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; flip: boolean; speaking?: boolean }) => ({
-  left: `${sp.pos * 100}%`, opacity: String(sp.opacity), zIndex: String(sp.z),
-  transform: `translateX(-50%)${sp.flip ? ' scaleX(-1)' : ''}`,
-  transition: 'filter .3s ease', // 移动/淡入由引擎逐步插值驱动；这里只为“说话者高亮”的灰化做平滑
-  filter: sp.speaking ? '' : 'var(--ams-nonspeaker-filter, grayscale(0.85) brightness(0.72))',
-});
+const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; flip: boolean; speaking?: boolean; fx?: string[] }) => {
+  const eff = props.theme?.effect;
+  // 情绪/受击标签滤镜（主题 effect.tags 映射）+ 说话者灰化（主题 effect.speaker）
+  const fxFilter = (sp.fx || []).map((t) => eff?.tags[t]).filter(Boolean).join(' ');
+  const speakerFilter = sp.speaking ? '' : (eff?.speaker.grayFilter || 'grayscale(0.85) brightness(0.72)');
+  return {
+    left: `${sp.pos * 100}%`, opacity: String(sp.opacity), zIndex: String(sp.z),
+    transform: `translateX(-50%)${sp.flip ? ' scaleX(-1)' : ''}`,
+    transition: 'filter .3s ease',
+    filter: [fxFilter, speakerFilter].filter(Boolean).join(' ') || '',
+  };
+};
 const rain = computed(() => {
   const fx = props.state.effects.find((e) => e.type.includes('rain'));
   if (!fx) return [] as { x: number; delay: number; dur: number; len: number }[];

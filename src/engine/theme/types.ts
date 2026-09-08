@@ -53,10 +53,12 @@ export interface AmesuSpeakerEffect {
   spriteSuffix: string;                  // treatment==='sprite' 时说话者的贴图后缀（如 _talk）
 }
 export interface AmesuTransitionEffect { crossfade: number; } // 背景/CG 交叉淡入淡出时长(ms)
+export type AmesuEffectTags = Record<string, string>; // 情绪/受击等标签 -> css filter（呈现层按此渲染）
 export interface AmesuEffect {
   character: AmesuCharacterEffect;
   speaker: AmesuSpeakerEffect;
   transition: AmesuTransitionEffect;
+  tags: AmesuEffectTags;
 }
 export interface AmesuDefaults { charColor: string; charW: number; charH: number; effectDuration: number; }
 

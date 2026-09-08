@@ -57,7 +57,7 @@ export interface EngineOptions {
 export interface BgState { src: string; mix: number; }
 export interface SpriteState {
   id: string; expr: string; pos: number; z: number;
-  opacity: number; flip: boolean; color: string; ready: boolean; src: string; speaking?: boolean;
+  opacity: number; flip: boolean; color: string; ready: boolean; src: string; speaking?: boolean; fx?: string[];
 }
 export interface SayState { who: string; text: string; reveal: number; }
 export interface ChoiceOption { text: string; jump?: string; set?: Record<string, unknown>; }
@@ -89,7 +89,7 @@ export interface Task {
 // —— 运行时内部（引擎持有，不用 any） ——
 export type Drawable = HTMLImageElement | HTMLCanvasElement;
 export interface BgRuntime { cur: Drawable | null; prev: Drawable | null; mix: number; }
-export interface SpriteRuntime { id: string; expr: string; color: string; sprite: Drawable | null; xFrac: number; xFracTo?: number; z: number; opacity: number; scaleX: number; opacityT?: number; opacityFrom?: number; opacityTo?: number; }
+export interface SpriteRuntime { id: string; expr: string; color: string; sprite: Drawable | null; xFrac: number; xFracTo?: number; z: number; opacity: number; scaleX: number; opacityT?: number; opacityFrom?: number; opacityTo?: number; leaving?: boolean; fx?: string[]; }
 export interface SayRuntime { who: string; text: string; typewriter: number; start: number; reveal: number; typingDone: boolean; advance: boolean; }
 export interface ChoiceRuntime { chosen: number | null; options: ChoiceOption[]; boxes: { x: number; y: number; w: number; h: number }[]; }
 export interface FadeRuntime { color: string; a: number; }

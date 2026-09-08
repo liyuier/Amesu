@@ -13,6 +13,7 @@ export const commands = {
     switch (d.type) {
       case 'bg': return this._taskBg(d);
       case 'char': return this._taskChar(d);
+      case 'hide': this._applyHide(d); return null;
       case 'say': return this._taskSay(d);
       case 'wait': return this._taskTime('wait', toMs(d.duration));
       case 'camera': return this._taskCamera(d);
@@ -215,9 +216,15 @@ export const commands = {
         opacity: d.effect === 'fade-in' ? 0 : (prev.opacity ?? 1),
         opacityFrom: d.effect === 'fade-in' ? 0 : (prev.opacity ?? 1), opacityTo: 1,
         scaleX: d.flip ? -1 : (prev.scaleX ?? 1),
+        fx: d.fx ? [...d.fx] : (prev.fx ?? []),
       });
     });
     this.lastSay = null;
+  }
+,
+  _applyHide(this: Engine, d) {
+    const c = this.chars.get(d.id as string);
+    if (c) { c.opacityTo = 0; c.leaving = true; } // 离场：淡出(exit 时长)，淡到 0 后由 _update 移除
   }
 ,
   _xPos(this: Engine, at) {
