@@ -372,6 +372,9 @@ export class Engine {
       if (c.xFracTo !== undefined) { c.xFrac = c.xFracTo; c.xFracFrom = c.xFracTo; c.xFracStart = this.time; }
       if (c.opacityTo !== undefined) { c.opacity = c.opacityTo; c.opacityFrom = c.opacityTo; c.opacityStart = this.time; }
     }
+    // 跳过进行中的背景交叉淡入（单击即完成至新背景）
+    const bgTask = this.activeTasks.find((t) => t.kind === 'bg');
+    if (bgTask) { this.bg.mix = 1; bgTask.forced = true; }
     // 跳过进行中的特效（交互模式下单击=结束特效）
     const efTask = this.activeTasks.find((t) => t.kind === 'effect');
     if (efTask) {

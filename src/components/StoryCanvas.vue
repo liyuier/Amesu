@@ -45,7 +45,7 @@ function addNode() { emit('save', [...props.sceneDirs, { type: 'say', who: '', t
       <span class="sc-hint">{{ sceneName }} · 拖拽改序 / 点结点编辑 / 连线分支</span>
     </div>
     <div class="sc-flow">
-      <VueFlow v-model:nodes="nodes" v-model:edges="edges" fit-view-on-init @node-click="onNodeClick" @node-drag-stop="onDragStop" @connect="onConnect">
+      <VueFlow v-model:nodes="nodes" v-model:edges="edges" :default-viewport="{ x: 0, y: 0, zoom: 0.62 }" @node-click="onNodeClick" @node-drag-stop="onDragStop" @connect="onConnect">
         <Background pattern-color="#3a3a44" :gap="16" />
       </VueFlow>
     </div>

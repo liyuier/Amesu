@@ -146,6 +146,7 @@ button:hover { border-color:var(--accent); color:#fff; }
 .sc-bar { display:flex; align-items:center; gap:10px; }
 .sc-hint { font-size:12px; color:var(--muted); }
 
+.vue-flow__node { background:#252530; border:1px solid var(--line); border-radius:8px; padding:7px 10px; color:#e6e9f2; font:13px sans-serif; }
 .vue-flow__node.cur { outline:2px solid var(--accent); border-radius:8px; }
 .sc-flow { flex:1; min-height:140px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#14151b; }
 .sc-prop { position:absolute; right:8px; bottom:10px; width:280px; background:var(--side); border:1px solid var(--line); border-radius:8px; padding:8px; z-index:20; }

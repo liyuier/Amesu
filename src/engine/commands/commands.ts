@@ -48,8 +48,8 @@ export const commands = {
     const prevMix = this.bg.cur ? this.bg.mix : 1;
     this._applyBgStart(d);
     return {
-      kind: 'bg', start, duration,
-      isDone: () => this.time - start >= duration,
+      kind: 'bg', start, duration, forced: false,
+      isDone: () => !!this.bg.forced || this.time - start >= duration,
       tick: () => {
         if (duration > 0) this.bg.mix = clamp((this.time - start) / duration, 0, 1);
         else this.bg.mix = 1;
