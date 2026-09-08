@@ -10,9 +10,11 @@ const bgStyle = computed(() => ({
   backgroundImage: props.state.bg ? `url("${props.state.bg.src}")` : undefined,
   opacity: String(props.state.bg?.mix ?? 1),
 }));
-const spriteStyle = (sp: { pos: number; opacity: number; z: number; flip: boolean }) => ({
+const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; flip: boolean }) => ({
   left: `${sp.pos * 100}%`, opacity: String(sp.opacity), zIndex: String(sp.z),
   transform: `translateX(-50%)${sp.flip ? ' scaleX(-1)' : ''}`,
+  transition: 'left .5s ease, transform .5s ease, filter .3s ease',
+  filter: props.state.say?.who === sp.id ? '' : 'grayscale(0.85) brightness(0.72)',
 });
 const rain = computed(() => {
   const fx = props.state.effects.find((e) => e.type.includes('rain'));

@@ -208,13 +208,13 @@ export const commands = {
     const color = d.color || cfg.color || this.config.defaults.charColor;
     const frac = this._xPos(d.at);
     this._charSprite(d.id, d.expr, color).then((sprite) => {
-      const from: Partial<SpriteRuntime> = this.chars.get(d.id as string) || {};
+      const prev: Partial<SpriteRuntime> = this.chars.get(d.id as string) || {};
       this.chars.set(d.id, {
         id: d.id, sprite, expr: d.expr, color,
-        xFrac: from.xFrac ?? frac, z: d.z ?? 10,
-        opacity: d.effect === 'fade-in' ? 0 : 1,
+        xFrac: frac, z: d.z ?? prev.z ?? 10,   // 始终用最新位置 → 支持“再发 char 即移动”(CSS transition 平滑)
+        opacity: prev.opacity ?? (d.effect === 'fade-in' ? 0 : 1),
         opacityFrom: 0, opacityTo: 1,
-        scaleX: d.flip ? -1 : 1,
+        scaleX: d.flip ? -1 : (prev.scaleX ?? 1),
       });
     });
     this.lastSay = null;
