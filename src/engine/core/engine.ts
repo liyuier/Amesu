@@ -59,7 +59,8 @@ export class Engine {
   exportMode = false; // 导出/录制：让画布绘制完整帧
   _bgSrc = ""; // 当前背景的原始 src
   _bgPrevSrc = ""; // 上一次背景的 src（供 DOM 交叉淡出）
-  _bgPos = 'center'; // 背景定位/平移（供 DOM background-image 使用） // 当采用 DOM(Vue) 视图时，画布跳过 UI 层，由 DOM 呈现
+  _bgPos = 'center'; // 背景定位/平移
+  _lastSpeaker = '';
   audio!: AudioManager;
   ctx!: CanvasRenderingContext2D;
   canvas!: HTMLCanvasElement;
@@ -174,8 +175,8 @@ export class Engine {
     return (c.sprite as HTMLCanvasElement).toDataURL();
   }
 
-  async _charSprite(id, expr, color) {
-    const src = `char/${id}_${expr || 'normal'}.png`;
+  async _charSprite(id, expr, color, suffix = '') {
+    const src = `char/${id}_${expr || 'normal'}${suffix}.png`;
     const img = await this._loadImage(src, 'char');
     if (img) return img;
     const def = this.config.assets.char; if (def) { const key = 'def_char_' + def; const url = this._resolve(def); const d = await this._loadImage(url, 'char'); if (d) { this._imgCache.set(src, d); return d; } }
@@ -255,6 +256,20 @@ export class Engine {
     this.state.stack = [{ arr, index: 0 }];
   }
 
+  // 嘴型分层：说话者(且主题 treatment==='sprite')加载 _talk 贴图，否则普通贴图
+  _syncSpeakerSprites() {
+    const who = this.lastSay?.who ?? '';
+    if (who === this._lastSpeaker) return;
+    this._lastSpeaker = who;
+    const sp = this.config.effect.speaker, useSprite = sp.treatment === 'sprite';
+    for (const [id, c] of this.chars.entries()) {
+      const want = useSprite && id === who ? sp.spriteSuffix : '';
+      if ((c.suffix ?? '') !== want) {
+        c.suffix = want;
+        this._charSprite(id, c.expr, c.color, want).then((sprite) => { const cur = this.chars.get(id); if (cur) cur.sprite = sprite; });
+      }
+    }
+  }
   _advance() {
     let guard = 0;
     while (guard++ < 10000) {
@@ -332,6 +347,7 @@ export class Engine {
     }
     // 离场：淡到 0 后移除
     for (const [id, c] of this.chars.entries()) { if (c.leaving && c.opacity === 0) this.chars.delete(id); }
+    this._syncSpeakerSprites();
     this._advance();
   }
 

@@ -22,7 +22,9 @@ const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; 
   const eff = props.theme?.effect;
   // 情绪/受击标签滤镜（主题 effect.tags 映射）+ 说话者灰化（主题 effect.speaker）
   const fxFilter = (sp.fx || []).map((t) => eff?.tags[t]).filter(Boolean).join(' ');
-  const speakerFilter = sp.speaking ? '' : (eff?.speaker.grayFilter || 'grayscale(0.85) brightness(0.72)');
+  // 说话者表现：主题 treatment==='gray' 才灰化非说话者；'sprite' 由引擎加载说话贴图(嘴型)
+  const useGray = eff?.speaker.treatment === 'gray';
+  const speakerFilter = useGray && !sp.speaking ? (eff?.speaker.grayFilter || 'grayscale(0.85) brightness(0.72)') : '';
   return {
     left: `${sp.pos * 100}%`, opacity: String(sp.opacity), zIndex: String(sp.z),
     transform: `translateX(-50%)${sp.flip ? ' scaleX(-1)' : ''}`,

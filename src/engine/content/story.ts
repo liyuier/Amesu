@@ -21,6 +21,7 @@ class SceneBuilder {
   bg(src, o = {}) { this._dirs.push(D('bg', { src, ...o })); return this; }
   char(id, o = {}) { this._dirs.push(D('char', { id, ...o })); return this; }
   say(who, text, o = {}) { this._dirs.push(D('say', { who, text, ...o })); return this; }
+  hide(id) { this._dirs.push(D('hide', { id })); return this; }
   voice(src, o = {}) { this._dirs.push(D('voice', { src, ...o })); return this; }
   bgm(src, o = {}) { this._dirs.push(D('bgm', { src, ...o })); return this; }
   sfx(src, o = {}) { this._dirs.push(D('sfx', { src, ...o })); return this; }
