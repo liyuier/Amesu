@@ -2,6 +2,7 @@
 // 可视化编辑器：VSCode 式【可拖动分栏】布局 = 顶栏 / 左工具区(可拖宽) + 中央预览(等比留黑边) + 底部工具区(可拖高) / 状态栏。
 // 交付物 = 开发机上选定的项目目录（服务端 API 列出/读取）。
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
+import Lightbox from 'vue-easy-lightbox';
 import { createEngine, type Engine, type SceneState, type Project, type AmesuConfig } from '@engine';
 import Player from './components/Player.vue';
 import Toolbar from './components/Toolbar.vue';
@@ -23,8 +24,11 @@ const state = ref<SceneState | null>(null);
 const inspect = ref('');
 const sceneText = ref('');
 const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
+const selNode = ref<number | null>(null);
+const propText = ref('');
+const sideCollapsed = ref(false);
 const sideTab = ref<'assets'|'fs'|'inspect'|null>('assets');
-function toggleAct(t: 'assets'|'fs'|'inspect') { sideTab.value = sideTab.value === t ? null : t; }
+function toggleAct(t: 'assets'|'fs'|'inspect') { if (sideTab.value === t && !sideCollapsed.value) { sideCollapsed.value = true; } else { sideTab.value = t; sideCollapsed.value = false; } }
 const lbVisible = ref(false); const lbSrc = ref(''); const vidVisible = ref(false); const vidSrc = ref('');
 function openLb(url: string) { lbSrc.value = url; lbVisible.value = true; }
 function openVid(url: string) { vidSrc.value = url; vidVisible.value = true; }
@@ -52,9 +56,10 @@ const sceneDirs = computed<{ type: string; who?: string }[]>(() => {
 const sideWidth = ref(300);
 const bottomHeight = ref(240);
 const mainEl = ref<HTMLElement | null>(null);
+const previewEl = ref<HTMLElement | null>(null);
 const fw = ref(0); const fh = ref(0);
 function updateFrame() {
-  const el = mainEl.value; if (!el) return;
+  const el = previewEl.value ?? mainEl.value; if (!el) return;
   const w = el.clientWidth, h = el.clientHeight; if (w <= 0 || h <= 0) return;
   let W = w, H = (w * 9) / 16;
   if (H > h) { H = h; W = (h * 16) / 9; }
@@ -109,7 +114,7 @@ async function loadAssets(path: string) { try { const r = await fetch('/api/asse
 watch(loaded, (v) => { if (v && v.project) launch(v.project, v.assetBase); });
 
 onMounted(() => {
-  if (mainEl.value) { ro = new ResizeObserver(updateFrame); ro.observe(mainEl.value); updateFrame(); }
+  if (previewEl.value ?? mainEl.value) { ro = new ResizeObserver(updateFrame); ro.observe(previewEl.value ?? mainEl.value!); updateFrame(); }
   // 脚本轨 HMR：dev-server 广播 reload → 重新打开当前项目（重取/转译 .ts 剧本）
   try { const es = new EventSource('/__reload'); es.onmessage = (e) => { if (e.data === 'reload' && name.value) openProject(name.value); }; } catch (e) { /* */ }
 });
@@ -127,7 +132,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
     </header>
 
     <div class="ed-mid">
-      <aside class="ed-side" :style="{ width: sideWidth + 'px' }">
+      <aside v-if="!sideCollapsed" class="ed-side" :style="{ width: sideWidth + 'px' }">
         <div class="ed-activity">
           <button class="ed-activity-btn" :class="{on: sideTab==='assets'}" title="素材(再点收起)" @click="toggleAct('assets')"><ImageIcon /></button>
           <button class="ed-activity-btn" :class="{on: sideTab==='fs'}" title="文件系统(再点收起)" @click="toggleAct('fs')"><FolderOpen /></button>
@@ -166,6 +171,8 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
 
       <div class="ed-col">
         <main class="ed-main" ref="mainEl">
+          <div class="ed-main-row">
+          <div class="ed-preview" ref="previewEl">
           <div v-if="!engine" class="ed-empty">
             <p class="ed-empty-title">还没打开项目</p>
             <button class="ed-open lg" @click="showPicker = true">📂 选择开发机目录作为工作目录</button>
@@ -174,24 +181,26 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
           <div v-else class="ams-frame" :style="{ width: fw + 'px', height: fh + 'px' }">
             <Player v-if="state" :key="state.episode" :state="state" :theme="engine?.config" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" />
           </div>
+          </div>
+          <div v-if="selNode != null" class="sc-prop">
+            <div class="sc-prop-head"><span class="sc-prop-title">结点 #{{ selNode }}（{{ sceneDirs[selNode]?.type }}）</span><button class="sc-apply" @click="applyNode">✔ 应用</button></div>
+            <textarea v-model="propText" class="sc-json" spellcheck="false" />
+          </div>
+          </div>
         </main>
         <div class="ed-viewbar"><Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" /></div>
         <div class="ed-split-h" @mousedown="startHDrag"></div>
         <section class="ed-bottom" :style="{ height: bottomHeight + 'px' }">
           <div class="ed-bottom-title">画布 · 当前场景（拖拽改序 / 点结点编辑 / 连线分支；橙色=当前步）</div>
           <div class="ed-bottom-body">
-            <StoryCanvas v-if="state" :scene-dirs="sceneDirs" :scene-name="state?.scene || ''" :current-index="state?.index" @save="handleSceneSave" />
+            <StoryCanvas v-if="state" :scene-dirs="sceneDirs" :scene-name="state?.scene || ''" :current-index="state?.index" :selected="selNode" @save="handleSceneSave" @select="(i: number) => selNode = i" />
           </div>
         </section>
       </div>
     </div>
 
-        <div v-if="lbVisible" class="pic-modal" @click.self="lbVisible=false">
-      <img :src="lbSrc" class="pic-modal-img" />
-      <button class="pic-close" @click="lbVisible=false">✕ 关闭</button>
-    </div>
-    <div v-if="vidVisible" class="vid-modal" @click.self="vidVisible=false"><video :src="vidSrc" controls autoplay class="vid-modal-video" />
-      <button class="vid-close" @click="vidVisible=false">✕ 关闭</button></div>
+        <Lightbox v-model:visible="lbVisible" :imgs="[lbSrc]" @close="lbVisible=false" />
+    <div v-if="vidVisible" class="vid-modal"><div class="vid-modal-box"><video :src="vidSrc" controls autoplay class="vid-modal-video" /><button class="vid-close" @click="vidVisible=false">✕ 关闭</button></div></div>
 
     <footer class="ed-statusbar">
       <span v-if="engine">项目:{{ name }} · scene:{{ state?.scene ?? '-' }} · t:{{ state?.time }}ms · {{ state?.mode }} x{{ state?.speed }}{{ state?.ended ? ' · 结束' : '' }}</span>

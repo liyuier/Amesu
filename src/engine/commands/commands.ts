@@ -45,17 +45,14 @@ export const commands = {
   _taskBg(this: Engine, d) {
     const duration = toMs(d.duration) || (d.transition && d.transition !== 'none' ? this.config.effect.transition.crossfade : 0);
     const start = this.time;
-    const prevMix = this.bg.cur ? this.bg.mix : 1;
     this._applyBgStart(d);
-    return {
+    const task = {
       kind: 'bg', start, duration, forced: false,
-      isDone: () => !!this.bg.forced || this.time - start >= duration,
-      tick: () => {
-        if (duration > 0) this.bg.mix = clamp((this.time - start) / duration, 0, 1);
-        else this.bg.mix = 1;
-      },
+      isDone: () => !!task.forced || this.time - start >= duration,
+      tick: () => { this.bg.mix = duration > 0 ? clamp((this.time - start) / duration, 0, 1) : 1; },
       complete: () => { this.bg.mix = 1; if (this.bg.prev) this.bg.prev = null; },
     };
+    return task;
   }
 ,
   _taskChar(this: Engine, d) {

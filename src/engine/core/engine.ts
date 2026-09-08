@@ -374,7 +374,7 @@ export class Engine {
     }
     // 跳过进行中的背景交叉淡入（单击即完成至新背景）
     const bgTask = this.activeTasks.find((t) => t.kind === 'bg');
-    if (bgTask) { this.bg.mix = 1; bgTask.forced = true; }
+    if (bgTask) bgTask.forced = true; // 单击即完成背景交叉淡入（complete 置 mix=1，避免直接赋值导致闪）
     // 跳过进行中的特效（交互模式下单击=结束特效）
     const efTask = this.activeTasks.find((t) => t.kind === 'effect');
     if (efTask) {

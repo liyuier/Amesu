@@ -59,7 +59,7 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans
 .ed-assets { display:flex; flex-wrap:wrap; gap:8px; }
 .ed-asset.audio { width:100%; }
 
-.ed-asset-audio { width:100%; height:40px; }
+.ed-asset-audio { width:100%; max-width:360px; height:40px; }
 .ed-asset-video { width:180px; height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--line); cursor:pointer; }
 .ed-asset-name { font-size:14px; color:#cbd2df; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ed-agroup-empty { color:var(--muted); font-size:12px; }
@@ -165,7 +165,13 @@ button:hover { border-color:var(--accent); color:#fff; }
 .mermaid-wrap .edgeLabel { color:#b8c2d6 !important; font-size:11px !important; }
 .mermaid-wrap .node rect { stroke:#e8e8ee; stroke-width:1.2; fill:#34343f; }
 .mermaid-wrap .node text { fill:#e8e8ee !important; font-family:'Noto Sans SC',sans-serif; font-size:14px !important; }
-.sc-prop { flex:0 0 300px; background:var(--side); border:1px solid var(--line); border-radius:8px; padding:10px; overflow:auto; }
+.ed-main-row { flex:1; min-height:0; display:flex; }
+.ed-preview { flex:1; min-width:0; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.sc-prop { flex:0 0 300px; background:var(--side); border-left:1px solid var(--line); padding:12px; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
+.sc-prop-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.sc-prop-title { font-size:13px; color:var(--accent2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sc-apply { background:var(--accent); color:#14161a; border:none; border-radius:6px; padding:5px 12px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.sc-json { flex:1; width:100%; min-height:0; font:12px/1.4 'Noto Sans SC',sans-serif; background:#0f1014; color:#cfd6e4; border:1px solid var(--line); border-radius:6px; padding:8px; white-space:pre; }
 .sc-prop-title { font-size:12px; color:var(--accent2); }
 .sc-json { width:100%; height:120px; font:11px/1.4 monospace; background:#0f1014; color:#cfd6e4; border:1px solid var(--line); border-radius:6px; padding:6px; margin-bottom:6px; white-space:pre; }
 .ed-view-toggle { margin-left:auto; display:flex; gap:4px; }
