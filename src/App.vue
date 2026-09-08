@@ -7,6 +7,7 @@ import Player from './components/Player.vue';
 import Toolbar from './components/Toolbar.vue';
 import Inspector from './components/Inspector.vue';
 import DirectoryPicker from './components/DirectoryPicker.vue';
+import StoryCanvas from './components/StoryCanvas.vue';
 import { useProject } from './composables/useProject.ts';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -19,6 +20,7 @@ const state = ref<SceneState | null>(null);
 const inspect = ref('');
 const sceneText = ref('');
 const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
+const view = ref<'timeline'|'canvas'>('timeline');
 // 时间轴：当前场景的指令序列，高亮当前步
 import { computed } from 'vue';
 const sceneDirs = computed<{ type: string; who?: string }[]>(() => {
@@ -131,8 +133,13 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
         </main>
         <div class="ed-split-h" @mousedown="startHDrag"></div>
         <section class="ed-bottom" :style="{ height: bottomHeight + 'px' }">
-          <div class="ed-bottom-title">素材（资源） + 时间轴 / 演出</div>
-          <div class="ed-bottom-body">
+          <div class="ed-bottom-title">素材（资源） + 时间轴 / 演出
+            <span class="ed-view-toggle">
+              <button :class="{ on: view==='timeline' }" @click="view='timeline'">时间轴</button>
+              <button :class="{ on: view==='canvas' }" @click="view='canvas'">画布</button>
+            </span>
+          </div>
+          <div class="ed-bottom-body" :style="view==='canvas' ? { display:'grid', gridTemplateRows:'auto 1fr', height:'100%' } : {}">
             <div class="ed-assets">
               <span class="ed-assets-title">素材：</span>
               <span v-for="a in assets" :key="a.rel" class="ed-asset" :title="a.rel">
@@ -140,7 +147,8 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
                 {{ a.rel }}
               </span>
             </div>
-            <div class="ed-timeline">
+            <StoryCanvas v-if="view==='canvas'" :scene-dirs="sceneDirs" :scene-name="state?.scene || ''" @save="handleSceneSave" />
+            <div v-if="view==='timeline'" class="ed-timeline">
               <div v-for="(d, i) in sceneDirs" :key="i" class="ed-step" :class="{ cur: i === state?.index }">
                 <span class="ed-step-no">{{ i }}</span>
                 <span class="ed-step-type">{{ d.type }}</span>
