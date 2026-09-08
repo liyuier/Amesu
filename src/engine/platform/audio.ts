@@ -28,6 +28,7 @@ export class AudioManager {
     this.muted = false;
   }
 
+  setVolume(v: number) { try { this.ensure(); if (this.master) this.master.gain.value = v; } catch (e) { /* */ } }
   suspend() { try { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); } catch (e) { /* */ } }
   resume() { try { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); } catch (e) { /* */ } }
   ensure() {

@@ -275,13 +275,15 @@ export const commands = {
   _applyHtml(this: Engine, d) { this.html = (d.html ?? d.content ?? '') as string; }
 ,
   // CG 视频：全屏封面，播放完(或点击/跳过)自动退出并继续流程(阻塞任务)
+  // 视频：mode='bg' 循环作背景层(非阻塞)；mode='cg'(默认) 全屏封面播放完自动退出(阻塞)
   _taskVideo(this: Engine, d) {
-    this.video = { src: (d.src as string) || '', skip: !!d.skip, done: false };
+    const mode = (d.mode as string) === 'bg' ? 'bg' : 'cg';
+    this.video = { src: (d.src as string) || '', skip: !!d.skip, done: false, mode };
     const task = {
       kind: 'video', start: this.time, forced: false,
-      isDone: () => !!this.video?.done || !!this.video?.skip || !!task.forced,
+      isDone: () => mode === 'bg' ? true : (!!this.video?.done || !!this.video?.skip || !!task.forced),
       tick: () => {},
-      complete: () => { if (this.video?.done || this.video?.skip) this.video = null; },
+      complete: () => { if (mode === 'bg') return; if (this.video?.done || this.video?.skip) this.video = null; },
     };
     return task;
   },

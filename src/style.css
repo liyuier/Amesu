@@ -56,6 +56,13 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans
 .ed-activity-btn.on { background:rgba(224,138,90,.20); }
 .ed-tool { flex:1; padding:0 10px; overflow:auto; min-width:0; }
 .ed-viewbar { flex:0 0 auto; display:flex; justify-content:center; padding:6px; background:var(--side); border-top:1px solid var(--line); }
+.ed-toolbar { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.tb { display:flex; align-items:center; gap:5px; background:transparent; border:1px solid var(--line); border-radius:7px; padding:5px 10px; color:var(--muted); cursor:pointer; font:13px 'Noto Sans SC',sans-serif; }
+.tb:hover { border-color:var(--accent); color:#fff; }
+.tb.active { border-color:var(--accent); color:#fff; background:rgba(224,138,90,.16); }
+.tb-label { font-size:12px; }
+.tb-vol { display:flex; align-items:center; gap:4px; color:var(--muted); margin-left:4px; }
+.tb-vol input[type=range] { width:90px; accent-color:var(--accent); cursor:pointer; }
 .ed-viewbar .ed-toolbar { margin:0; }
 .ed-agroup { margin-bottom:12px; }
 .ed-agroup-title { font-size:12px; color:var(--accent2); margin-bottom:6px; }
@@ -185,3 +192,4 @@ button:hover { border-color:var(--accent); color:#fff; }
 
 /* CG 视频：全屏封面，替代/遮盖界面，播放完自动退出 */
 .ams-video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000; z-index:7; cursor:pointer; }
+.ams-video.bg { object-fit:cover; z-index:0; } /* 背景视频：铺满作背景层 */
