@@ -15,6 +15,7 @@
 // 但占位合成可长期保留作为 fallback（与设计文档 §3.9 对应）。
 
 import { mixHex, seededRng, TAU } from './util.js';
+import { DEFAULT_CONFIG as CFG } from '../config.js';
 
 // ---------- 背景 ----------
 // 根据资源名生成一张确定性的暮色/夜景渐变背景
@@ -23,9 +24,9 @@ export function makeBackground(name, w, h) {
   c.width = w; c.height = h;
   const g = c.getContext('2d');
   const seed = seededRng(String(name));
-  const palettes = ['#0b1a2e', '#1b2f4d', '#2a3f5f', '#0e2233', '#1a1f33'];
+  const palettes = CFG.colors.bgPalettes;
   const top = palettes[Math.floor(seed() * palettes.length)];
-  const bot = mixHex('#0c1220', top, 0.5);
+  const bot = mixHex(CFG.colors.fallbackBg, top, 0.5);
   const grad = g.createLinearGradient(0, 0, 0, h);
   grad.addColorStop(0, top);
   grad.addColorStop(1, bot);
@@ -44,13 +45,13 @@ export function makeBackground(name, w, h) {
   }
 
   // 底部地平线亮带（营造“城市夜”氛围）
-  g.fillStyle = 'rgba(255,180,120,0.10)';
+  g.fillStyle = CFG.colors.bgGlow;
   g.fillRect(0, h * 0.72, w, h * 0.28);
 
   // 轻微暗角
   const vig = g.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, h * 0.85);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.35)');
+  vig.addColorStop(0, CFG.colors.vinIn);
+  vig.addColorStop(1, CFG.colors.vinOut);
   g.fillStyle = vig;
   g.fillRect(0, 0, w, h);
   return c;
@@ -76,7 +77,7 @@ export function makeCharacter(id, expr, color, w, h) {
   c.width = w; c.height = h;
   const g = c.getContext('2d');
   const cx = w / 2;
-  const base = color || '#8fd0ff';
+  const base = color || CFG.colors.charDefault;
   const seed = seededRng(String(id));
 
   // 身体（长袍/大衣）
@@ -89,28 +90,28 @@ export function makeCharacter(id, expr, color, w, h) {
 
   // 头部
   const headY = h * 0.30, headR = w * 0.20;
-  const skin = mixHex('#f2d6c0', base, 0.25);
+  const skin = mixHex(CFG.colors.character.skinBase, base, CFG.colors.character.skinA);
   g.fillStyle = skin;
   g.beginPath();
   g.arc(cx, headY, headR, 0, TAU);
   g.fill();
 
   // 头发
-  g.fillStyle = mixHex('#222933', base, 0.5);
+  g.fillStyle = mixHex(CFG.colors.character.hairBase, base, CFG.colors.character.hairA);
   g.beginPath();
   g.arc(cx, headY - headR * 0.18, headR * 1.05, Math.PI, TAU);
   g.fill();
 
   // 表情
-  g.strokeStyle = '#3a2a22';
+  g.strokeStyle = CFG.colors.character.eye;
   g.lineWidth = Math.max(3, w * 0.012);
   g.lineCap = 'round';
   const mouthFn = EXPR_MOUTH[expr] || EXPR_MOUTH.normal;
   const eyesFn = EXPR_EYES[expr] || EXPR_EYES.normal;
-  g.fillStyle = '#2a1c16';
-  g.strokeStyle = '#2a1c16';
+  g.fillStyle = CFG.colors.character.eyeFill;
+  g.strokeStyle = CFG.colors.character.eyeFill;
   eyesFn(g, cx, headY - headR * 0.12);
-  g.strokeStyle = '#6b4a3a';
+  g.strokeStyle = CFG.colors.character.mouth;
   mouthFn(g, cx, headY + headR * 0.5);
 
   // 轮廓
@@ -119,7 +120,7 @@ export function makeCharacter(id, expr, color, w, h) {
   g.strokeRect(0.5, 0.5, w - 1, h - 1);
 
   // 轻微随机色斑避免太呆板
-  g.fillStyle = 'rgba(255,255,255,0.05)';
+  g.fillStyle = CFG.colors.character.highlight;
   g.beginPath(); g.arc(cx + (seed() - 0.5) * w * 0.3, h * 0.8, w * 0.12, 0, TAU); g.fill();
   return c;
 }

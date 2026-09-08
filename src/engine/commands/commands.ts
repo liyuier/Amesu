@@ -198,14 +198,14 @@ export const commands = {
     this.bg.prev = this.bg.cur;
     this._bg(d.src).then((img) => {
       this.bg.cur = img; this.bg.mix = 0;
-      if (d.transition === 'fade') this.fade = { color: 'rgba(0,0,0,0)', a: 0 };
-      else if (d.transition === 'black') this.fade = { color: 'rgba(0,0,0,1)', a: 1 };
+      if (d.transition === 'fade') this.fade = { color: this.config.colors.fadeIn, a: 0 };
+      else if (d.transition === 'black') this.fade = { color: this.config.colors.fadeOut, a: 1 };
     });
   }
 ,
   _applyCharStart(this: Engine, d) {
     const cfg = this.characters[d.id as string] || {};
-    const color = d.color || cfg.color || '#8fd0ff';
+    const color = d.color || cfg.color || this.config.defaults.charColor;
     const frac = this._xPos(d.at);
     this._charSprite(d.id, d.expr, color).then((sprite) => {
       const from: Partial<SpriteRuntime> = this.chars.get(d.id as string) || {};
@@ -251,20 +251,22 @@ export const commands = {
     const duration = toMs(d.duration) || 3000;
     const start = this.time;
     const params = d.params || {};
-    const overlay = this._makeRain(start, duration, { ...params, count: params.count ?? 220 });
+    const overlay = this._makeRain(start, duration, { ...params, count: params.count ?? this.config.particle.rain[0].count });
     overlay.effectName = d.name;
     this.overlays.push(overlay);
   }
 ,
   _makeRain(start, duration, p): RainOverlay {
     const W = this.res.width, H = this.res.height;
+    const R = this.config.particle.rain[0];
     const drops = [];
-    const n = p.count || 200;
+    const n = p.count || R.count;
     for (let i = 0; i < n; i++) {
       drops.push({
         x: Math.random() * W, y: Math.random() * H,
-        len: 14 + Math.random() * 26, sp: (p.speed || 300) * (0.6 + Math.random() * 0.8),
-        thick: 1 + Math.random() * 2,
+        len: R.lenMin + Math.random() * R.lenVar,
+        sp: (p.speed || R.speed) * (0.6 + Math.random() * R.speedVar),
+        thick: R.thickMin + Math.random() * R.thickVar,
       });
     }
     return { type: 'rain', start, duration, angle: Number(p.angle) || 0, drops };

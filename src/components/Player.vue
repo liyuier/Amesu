@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // 播放器：把 SceneState 渲染成【全 DOM】—— 这就是“交付物”的画面内容。Vue 第一公民。
 import { computed } from 'vue';
-import type { SceneState } from '@engine';
+import { DEFAULT_CONFIG, type SceneState } from '@engine';
+const RAIN = DEFAULT_CONFIG.particle.rain[0];
 const props = defineProps<{ state: SceneState }>();
 const emit = defineEmits<{ advance: []; choose: [index: number] }>();
 
@@ -16,7 +17,7 @@ const spriteStyle = (sp: { pos: number; opacity: number; z: number; flip: boolea
 const rain = computed(() => {
   const fx = props.state.effects.find((e) => e.type.includes('rain'));
   if (!fx) return [] as { x: number; delay: number; dur: number; len: number }[];
-  const n = Math.min(Number(fx.params.count) || 60, 60);
+  const n = Math.min(Number(fx.params.count) || RAIN.count, RAIN.count * 2);
   return Array.from({ length: n }, (_, i) => ({
     x: Math.random() * 100, delay: Math.random() * (fx.duration / 1000), dur: fx.duration / 1000, len: 12 + Math.random() * 22,
   }));

@@ -17,3 +17,5 @@ export { story, loadStory, storyToStory } from './content/story.js';
 export { Easing, clamp, lerp } from './platform/util.js';
 export { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from './platform/placeholder.js';
 export { AudioManager } from './platform/audio.js';
+export { DEFAULT_CONFIG, mergeConfig } from './config.js';
+export type { AmesuConfig, AmesuFonts, AmesuColors, AmesuLayout, AmesuParticle, AmesuPlaceholder, AmesuDefaults } from './config.js';

@@ -18,6 +18,7 @@ import { loadStory } from '../content/story.js';
 import { clamp, lerp, ease, toMs, TAU } from '../platform/util.js';
 import { makeBackground, makeCharacter, makeBGM, makeSFX, makeVoice } from '../platform/placeholder.js';
 import { AudioManager } from '../platform/audio.js';
+import { mergeConfig, type AmesuConfig } from '../config.js';
 import type { Story, CharacterDef, Task, EngineOptions, Directive, EngineRunState, RainOverlay, SpriteRuntime, BgRuntime, CameraRuntime, SayRuntime, ChoiceRuntime, FadeRuntime, Project, Drawable, SceneState } from '../types/types.js';
 import { renderer } from '../render/renderer.js';
 import { commands } from '../commands/commands.js';
@@ -36,6 +37,7 @@ export class Engine {
   dpr!: number;
   assetBase!: string;
   resolveAsset!: ((src: string) => string) | null;
+  config!: AmesuConfig;
   mode!: 'interactive' | 'deterministic';
   story!: Story;
   characters!: Record<string, CharacterDef>;
@@ -75,6 +77,7 @@ export class Engine {
     this.dpr = options.dpr || 1;
     this.assetBase = options.assetBase || meta.res || './assets';
     this.resolveAsset = options.resolveAsset ?? null;
+    this.config = mergeConfig(options.config);
     this.mode = options.mode || 'interactive'; // 'interactive' | 'deterministic'
     this.story = loadStory(project.scripts || project);
     this.characters = Object.assign({}, meta.characters || {}, this.story.characters || {});
@@ -92,7 +95,7 @@ export class Engine {
     this.camera = { x: 0, y: 0, zoom: 1 };
     this.lastSay = null;       // 当前对白（持续显示直到被替换）
     this.pendingChoice = null; // { options, chosen, boxes: [] }
-    this.fade = { color: 'rgba(0,0,0,0)', a: 0 }; // 转场蒙版
+    this.fade = { color: this.config.colors.fadeIn, a: 0 }; // 转场蒙版
     this.skipRequested = false;
 
     this.audio = new AudioManager();
@@ -177,7 +180,7 @@ export class Engine {
     if (img) return img;
     const key = 'ph_char_' + id + '_' + (expr || 'normal');
     if (this._imgCache.has(key)) return this._imgCache.get(key);
-    const c = makeCharacter(id, expr || 'normal', color || '#8fd0ff', 520, 760);
+    const c = makeCharacter(id, expr || 'normal', color || this.config.defaults.charColor, this.config.defaults.charW, this.config.defaults.charH);
     this._imgCache.set(key, c);
     return c;
   }
@@ -230,7 +233,7 @@ export class Engine {
     this.activeTasks = []; this.overlays = [];
     this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 };
     this.camera = { x: 0, y: 0, zoom: 1 }; this.lastSay = null; this.pendingChoice = null;
-    this.fade = { color: 'rgba(0,0,0,0)', a: 0 };
+    this.fade = { color: this.config.colors.fadeIn, a: 0 };
     this.state = { stack: [{ arr: this.story.scenes[this.story.start] || [], index: 0 }], vars: {} };
     this._advance();
   }

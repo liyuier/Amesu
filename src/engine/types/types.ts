@@ -36,6 +36,8 @@ export interface Project {
   characters?: Record<string, CharacterDef>;
   [k: string]: unknown;
 }
+import type { AmesuConfig } from '../config.js';
+
 export interface EngineOptions {
   canvas?: HTMLCanvasElement;
   resolution?: { width: number; height: number };
@@ -43,6 +45,7 @@ export interface EngineOptions {
   mode?: 'interactive' | 'deterministic';
   loop?: boolean; autoplay?: boolean;
   resolveAsset?: (src: string) => string;
+  config?: Partial<AmesuConfig>;
   plugins?: unknown[];
   onFrame?: (frame: number, state: SceneState) => void;
   onError?: (err: unknown) => void;
