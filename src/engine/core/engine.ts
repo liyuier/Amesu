@@ -88,6 +88,8 @@ export class Engine {
     this.resolveAsset = options.resolveAsset ?? null;
     const metaTheme = (meta as { theme?: unknown }).theme as ThemeRef | undefined;
     this.config = mergeTheme(resolveTheme(options.theme ?? metaTheme), options.config);
+    // 插件：install 时拿到 engine 实例，可挂指令/覆盖主题/加资源
+    for (const p of (options.plugins ?? [])) { try { p?.install?.(this); } catch (e) { console.error('[amesu] plugin', p?.name, e); } }
     this.mode = options.mode || 'interactive'; // 'interactive' | 'deterministic'
     this.story = loadStory(project.scripts || project);
     this.characters = Object.assign({}, meta.characters || {}, this.story.characters || {});

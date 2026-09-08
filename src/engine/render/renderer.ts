@@ -131,27 +131,29 @@ export const renderer = {
   }
 ,
   _drawChars(this: Engine, ctx, W, H) {
-    const S = this.config.layout.sprite, C = this.config.colors;
+    const S = this.config.layout.sprite, C = this.config.colors, SP = this.config.effect.speaker;
     const list = [...this.chars.values()].sort((a, b) => (a.z || 0) - (b.z || 0));
     for (const c of list) {
       if (!c.sprite) continue;
       const sw = c.sprite.width || 256, sh = c.sprite.height || 256;
-      const dh = H * S.heightRatio; // 半身/全身高
+      const dh = H * S.heightRatio;                 // 与 DOM(52%) 一致
       const dw = dh * (sw / sh);
       const cx = c.xFrac * W;
       const bx = cx - dw / 2;
-      const by = H - S.bottomReserve - dh; // 立绘底部悬于对话框上方
+      const bottomPx = H * 0.06;                     // 与 DOM bottom:6% 一致
+      const by = H - bottomPx - dh;
       // 脚下软阴影
       ctx.save();
       ctx.globalAlpha = (c.opacity || 1) * S.shadowA;
       ctx.fillStyle = C.shadow;
       ctx.beginPath();
-      ctx.ellipse(cx, H - S.shadowDY, dw * S.shadowW, S.shadowH, 0, 0, TAU);
+      ctx.ellipse(cx, H - bottomPx, dw * S.shadowW, S.shadowH, 0, 0, TAU);
       ctx.fill();
       ctx.restore();
-      // 立绘
+      // 立绘（应用主题的说话者明暗：非说话者灰化，与 DOM 一致）
       ctx.save();
       ctx.globalAlpha = c.opacity;
+      if (SP.treatment === 'gray' && c.id !== this.lastSay?.who) ctx.filter = SP.grayFilter || 'grayscale(0.85) brightness(0.72)';
       ctx.translate(cx, 0);
       ctx.scale(c.scaleX || 1, 1);
       ctx.drawImage(c.sprite, -dw / 2, by, dw, dh);

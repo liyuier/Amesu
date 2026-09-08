@@ -39,6 +39,8 @@ export interface Project {
 import type { AmesuConfig } from '../theme/types.js';
 import type { ThemeRef } from '../theme/index.js';
 
+export interface Plugin { name?: string; install: (engine: unknown) => void; }
+
 export interface EngineOptions {
   canvas?: HTMLCanvasElement;
   resolution?: { width: number; height: number };
@@ -48,7 +50,7 @@ export interface EngineOptions {
   resolveAsset?: (src: string) => string;
   config?: Partial<AmesuConfig>;
   theme?: ThemeRef;
-  plugins?: unknown[];
+  plugins?: Plugin[];
   onFrame?: (frame: number, state: SceneState) => void;
   onError?: (err: unknown) => void;
 }

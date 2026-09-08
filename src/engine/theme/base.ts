@@ -33,7 +33,7 @@ export const baseTheme: AmesuConfig = {
     dialogue: { pad: 24, boxH: 140, bottom: 24, radius: 16, nameDX: 22, nameDY: 36, textDX: 22, textDY: 72, textPX: 22, lineH: 34 },
     choice: { width: 360, height: 52, gap: 18, topGap: 44, radius: 12, textDX: 24, textDY: 7, hintDX: -64, hintDY: -10, minY: 60 },
     hud: { x: 12, y: 22 },
-    sprite: { heightRatio: 0.42, bottomReserve: 172, shadowA: 0.25, shadowW: 0.32, shadowH: 14, shadowDY: 6 },
+    sprite: { heightRatio: 0.52, bottomReserve: 172, shadowA: 0.25, shadowW: 0.32, shadowH: 14, shadowDY: 6 },
   },
   particle: {
     rain: [
