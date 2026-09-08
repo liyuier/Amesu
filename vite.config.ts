@@ -41,6 +41,17 @@ function projectApi(): Plugin {
         const u = new URL(req.url || '/', 'http://x');
         const p = u.pathname, q = u.searchParams;
         try {
+          if (p === '/api/fs/tree') {
+            const rel = q.get('path') ?? '';
+            const dir = safeJoin(BASE, rel); if (!dir) { res.writeHead(403); res.end('forbidden'); return; }
+            const build = (d: string, depth: number): any[] => {
+              if (depth > 5) return [];
+              let out: any[] = [];
+              try { for (const e of fs.readdirSync(d, { withFileTypes: true })) { if (e.name.startsWith('.') || e.name === 'node_modules' || e.name === '.git') continue; out.push(e.isDirectory() ? { name: e.name, type: 'dir', children: build(path.join(d, e.name), depth + 1) } : { name: e.name, type: 'file', size: fs.statSync(path.join(d, e.name)).size }); } } catch (e) { /* */ }
+              return out;
+            };
+            return sendJson(res, { name: path.basename(dir), children: build(dir, 0) });
+          }
           if (p === '/api/asset-list') {
             const rel = q.get('path') ?? '';
             const dir = safeJoin(BASE, rel); if (!dir) { res.writeHead(403); res.end('forbidden'); return; }

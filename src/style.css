@@ -70,6 +70,14 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans
 .ed-fs-icon { width:16px; height:16px; }
 .ed-fs-file { color:var(--muted); cursor:default; }
 .ed-fs-dot { color:var(--muted); }
+.ft-row { display:flex; align-items:center; gap:4px; padding:3px 6px; border-radius:5px; cursor:pointer; font-size:13px; color:var(--text); }
+.ft-row:hover { background:#2a2b35; }
+.ft-chev { width:14px; height:14px; color:var(--muted); transition:transform .12s; }
+.ft-chev.down { transform:rotate(90deg); }
+.ft-chev-placeholder { width:14px; }
+.ft-icon { width:14px; height:14px; color:#e0b06a; }
+.ft-dot { color:var(--muted); }
+.ft-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ed-apply { margin-top:8px; }
 
 /* 中央预览：占满剩余（master），居中 */

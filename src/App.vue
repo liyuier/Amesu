@@ -8,7 +8,9 @@ import Toolbar from './components/Toolbar.vue';
 import Inspector from './components/Inspector.vue';
 import DirectoryPicker from './components/DirectoryPicker.vue';
 import StoryCanvas from './components/StoryCanvas.vue';
-import { Image as ImageIcon, FolderOpen, Search, ChevronRight } from 'lucide-vue-next';
+import FsTree from './components/FsTree.vue';
+import { Image as ImageIcon, FolderOpen, Search } from 'lucide-vue-next';
+import Lightbox from 'vue-easy-lightbox';
 import { useProject } from './composables/useProject.ts';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -22,6 +24,9 @@ const inspect = ref('');
 const sceneText = ref('');
 const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
 const sideTab = ref<'assets'|'fs'|'inspect'>('assets');
+const lbVisible = ref(false); const lbSrc = ref(''); const vidVisible = ref(false); const vidSrc = ref('');
+function openLb(url: string) { lbSrc.value = url; lbVisible.value = true; }
+function openVid(url: string) { vidSrc.value = url; vidVisible.value = true; }
 // 素材按媒体类型分组
 const assetGroups = computed(() => ([
   { label: '图片', items: assets.value.filter((a) => ['png','jpg','jpeg','webp','gif'].includes(a.kind)) },
@@ -29,11 +34,9 @@ const assetGroups = computed(() => ([
   { label: '视频', items: assets.value.filter((a) => ['mp4','webm'].includes(a.kind)) },
 ]));
 // 文件系统浏览器
-const fsPath = ref(''); const fsParent = ref(''); const fsDirs = ref<{name:string;isProject:boolean}[]>([]); const fsFiles = ref<{name:string}[]>([]);
-async function listFs(p: string) { try { const d = await (await fetch('/api/fs/list?path=' + encodeURIComponent(p) + '&files=1')).json(); fsPath.value = d.path; fsParent.value = d.parent; fsDirs.value = d.dirs; fsFiles.value = d.files; } catch (e) { fsDirs.value = []; fsFiles.value = []; } }
-function fsOpen(n: string) { listFs(fsPath.value ? fsPath.value + '/' + n : n); }
-function fsUp() { listFs(fsParent.value); }
-watch(name, (n) => { if (n) { loadAssets(n); listFs(n); } });
+const fsTree = ref<{ name: string; children: { name: string; type: string; children?: any[] }[] } | null>(null);
+async function fetchTree(p: string) { try { fsTree.value = await (await fetch('/api/fs/tree?path=' + encodeURIComponent(p))).json(); } catch (e) { fsTree.value = null; } }
+watch(name, (n) => { if (n) { loadAssets(n); fetchTree(n); } });
 // 时间轴：当前场景的指令序列，高亮当前步
 import { computed } from 'vue';
 const sceneDirs = computed<{ type: string; who?: string }[]>(() => {
@@ -135,9 +138,9 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
                 <div class="ed-agroup-title">{{ g.label }}</div>
                 <div v-if="g.items.length" class="ed-assets">
                   <div v-for="a in g.items" :key="a.rel" class="ed-asset" :title="a.rel">
-                    <img v-if="['png','jpg','jpeg','webp','gif'].includes(a.kind)" :src="a.url" class="ed-asset-thumb" />
+                    <img v-if="['png','jpg','jpeg','webp','gif'].includes(a.kind)" :src="a.url" class="ed-asset-thumb" @click="openLb(a.url)" title="点击查看大图" />
                     <audio v-else-if="['mp3','wav','ogg'].includes(a.kind)" :src="a.url" controls class="ed-asset-audio" />
-                    <video v-else-if="['mp4','webm'].includes(a.kind)" :src="a.url" controls class="ed-asset-video" />
+                    <video v-else-if="['mp4','webm'].includes(a.kind)" :src="a.url" class="ed-asset-video" @click="openVid(a.url)" title="点击播放" />
                     <span class="ed-asset-name">{{ a.rel }}</span>
                   </div>
                 </div>
@@ -146,9 +149,9 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
             </template>
             <template v-else-if="sideTab==='fs'">
               <div class="ed-fs">
-                <div class="ed-fs-bar"><button @click="fsUp" :disabled="!fsParent">← 上一级</button><span class="ed-fs-path">{{ fsPath || '（根）' }}</span></div>
-                <div v-for="d in fsDirs" :key="d.name" class="ed-fs-item" @click="fsOpen(d.name)"><FolderOpen class="ed-fs-icon" /> {{ d.name }}{{ d.isProject ? '（项目）' : '' }}</div>
-                <div v-for="f in fsFiles" :key="f.name" class="ed-fs-item fs-file"><span class="ed-fs-dot">·</span>{{ f.name }}</div>
+                <div class="ed-fs-bar"><FolderOpen class="ed-fs-icon" /><span class="ed-fs-path">{{ fsTree?.name || '（项目根）' }}（树 · 点目录展开）</span></div>
+                <FsTree v-if="fsTree" v-for="c in fsTree.children" :key="c.name" :node="c" :depth="0" />
+                <div v-else class="ed-agroup-empty">（暂无内容）</div>
               </div>
             </template>
             <template v-else-if="sideTab==='inspect'">
@@ -180,6 +183,9 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
         </section>
       </div>
     </div>
+
+    <Lightbox v-model:visible="lbVisible" :imgs="[lbSrc]" />
+    <div v-if="vidVisible" class="vid-modal" @click.self="vidVisible=false"><video :src="vidSrc" controls autoplay class="vid-modal-video" /><button class="vid-close" @click="vidVisible=false">✕ 关闭</button></div>
 
     <footer class="ed-statusbar">
       <span v-if="engine">项目:{{ name }} · scene:{{ state?.scene ?? '-' }} · t:{{ state?.time }}ms · {{ state?.mode }} x{{ state?.speed }}{{ state?.ended ? ' · 结束' : '' }}</span>
