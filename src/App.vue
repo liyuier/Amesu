@@ -11,6 +11,8 @@ import DirectoryPicker from './components/DirectoryPicker.vue';
 import StoryCanvas from './components/StoryCanvas.vue';
 import FsTree from './components/FsTree.vue';
 import { Image as ImageIcon, FolderOpen, Search } from 'lucide-vue-next';
+import videojs from 'video.js';
+import 'video.js/dist/video-js.css';
 
 import { useProject } from './composables/useProject.ts';
 
@@ -27,11 +29,16 @@ const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
 const selNode = ref<number | null>(null);
 const propText = ref('');
 const sideCollapsed = ref(false);
+const previewW = ref(640);
+let pvDrag: { x: number; w: number } | null = null;
+function startPVDrag(e: MouseEvent) { pvDrag = { x: e.clientX, w: previewW.value }; const mv = (ev: MouseEvent) => { if (pvDrag) previewW.value = pvDrag.w + (ev.clientX - pvDrag.x); }; const up = () => { pvDrag = null; window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); }; window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); }
+const vidEl = ref<HTMLElement | null>(null); let vidPlayer: any = null;
 const sideTab = ref<'assets'|'fs'|'inspect'|null>('assets');
 function toggleAct(t: 'assets'|'fs'|'inspect') { if (sideTab.value === t && !sideCollapsed.value) { sideCollapsed.value = true; } else { sideTab.value = t; sideCollapsed.value = false; } }
 const lbVisible = ref(false); const lbSrc = ref(''); const vidVisible = ref(false); const vidSrc = ref('');
 function openLb(url: string) { lbSrc.value = url; lbVisible.value = true; }
 function openVid(url: string) { vidSrc.value = url; vidVisible.value = true; }
+watch(vidVisible, (v) => { if (v && vidEl.value) { try { vidPlayer = videojs(vidEl.value, { controls: true, autoplay: true, sources: [{ src: vidSrc.value, type: 'video/mp4' }] }); } catch (e) { console.warn('video.js', e); } } else { try { vidPlayer?.dispose?.(); } catch (e) { /* */ } vidPlayer = null; } }, { flush: 'post' });
 // 素材按媒体类型分组
 const assetGroups = computed(() => ([
   { label: '图片', items: assets.value.filter((a) => ['png','jpg','jpeg','webp','gif'].includes(a.kind)) },
@@ -172,7 +179,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
       <div class="ed-col">
         <main class="ed-main" ref="mainEl">
           <div class="ed-main-row">
-          <div class="ed-preview" ref="previewEl">
+          <div class="ed-preview" ref="previewEl" :style="{ width: previewW + 'px' }">
           <div v-if="!engine" class="ed-empty">
             <p class="ed-empty-title">还没打开项目</p>
             <button class="ed-open lg" @click="showPicker = true">📂 选择开发机目录作为工作目录</button>
@@ -182,6 +189,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
             <Player v-if="state" :key="state.episode" :state="state" :theme="engine?.config" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" />
           </div>
           </div>
+          <div class="ed-split-v" @mousedown="startPVDrag"></div>
           <div v-if="selNode != null" class="sc-prop">
             <div class="sc-prop-head"><span class="sc-prop-title">结点 #{{ selNode }}（{{ sceneDirs[selNode]?.type }}）</span><button class="sc-apply" @click="applyNode">✔ 应用</button></div>
             <textarea v-model="propText" class="sc-json" spellcheck="false" />
@@ -199,7 +207,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
       </div>
     </div>
 
-        <Lightbox v-model:visible="lbVisible" :imgs="[lbSrc]" @close="lbVisible=false" />
+        <Lightbox :visible="lbVisible" :imgs="[lbSrc]" @hide="lbVisible=false" />
     <div v-if="vidVisible" class="vid-modal"><div class="vid-modal-box"><video :src="vidSrc" controls autoplay class="vid-modal-video" /><button class="vid-close" @click="vidVisible=false">✕ 关闭</button></div></div>
 
     <footer class="ed-statusbar">

@@ -166,8 +166,10 @@ button:hover { border-color:var(--accent); color:#fff; }
 .mermaid-wrap .node rect { stroke:#e8e8ee; stroke-width:1.2; fill:#34343f; }
 .mermaid-wrap .node text { fill:#e8e8ee !important; font-family:'Noto Sans SC',sans-serif; font-size:14px !important; }
 .ed-main-row { flex:1; min-height:0; display:flex; }
-.ed-preview { flex:1; min-width:0; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-.sc-prop { flex:0 0 300px; background:var(--side); border-left:1px solid var(--line); padding:12px; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
+.ed-preview { flex:0 0 auto; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.ed-split-v { flex:0 0 5px; cursor:col-resize; background:var(--line); }
+.ed-split-v:hover { background:var(--accent); }
+.sc-prop { flex:1; min-width:0; background:var(--side); border-left:1px solid var(--line); padding:12px; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
 .sc-prop-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .sc-prop-title { font-size:13px; color:var(--accent2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sc-apply { background:var(--accent); color:#14161a; border:none; border-radius:6px; padding:5px 12px; font-weight:600; cursor:pointer; white-space:nowrap; }
