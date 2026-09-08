@@ -467,7 +467,7 @@ export class Engine {
     return {
       cg: this.cg ? { src: this._resolve(this.cg.src), opacity: this.cg.opacity } : null,
       uiFx: this.uiFx && this.time - this.uiFx.start < this.uiFx.dur ? { block: this.uiFx.block, tags: this.uiFx.tags } : null,
-      html: this.html, video: this.video,
+      html: this.html, video: this.video ? { src: this._resolve(this.video.src), skip: this.video.skip } : null,
       bg: (this.bg.cur || this.bg.prev) ? {
         cur: this.bg.cur ? { src: this._resolve(this._bgSrc || ''), opacity: this.bg.mix, pos: this._bgPos } : null,
         prev: this.bg.prev ? { src: this._resolve(this._bgPrevSrc || ''), opacity: 1 - this.bg.mix, pos: this._bgPos } : null,

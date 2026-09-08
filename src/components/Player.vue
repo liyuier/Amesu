@@ -65,7 +65,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
     <div v-if="sceneLoading" class="ams-loading"><span class="ams-loading-dot">●</span> 加载中…</div>
     <div v-if="state.cg" class="ams-cg" :style="cgStyle"></div>
     <div v-if="state.html" class="ams-html" v-html="state.html"></div>
-    <video v-if="state.video && state.video.src" class="ams-video" :src="state.video.src" autoplay controls></video>
+    <video v-if="state.video && state.video.src" class="ams-video" :src="state.video.src" autoplay muted playsinline controls></video>
     <div class="ams-fx"><span v-for="(d, i) in rain" :key="i" class="ams-drop" :style="dropStyle(d)"></span></div>
     <div class="ams-dialogue" :style="{ ...dialogueStyle, ...blockFx('dialogue') }">
       <div v-if="state.say && state.say.who" class="ams-name">{{ state.say.who }}</div>
