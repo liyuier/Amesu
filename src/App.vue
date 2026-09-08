@@ -106,7 +106,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
     <div class="ed-mid">
       <aside class="ed-side" :style="{ width: sideWidth + 'px' }">
         <template v-if="engine">
-          <Toolbar :engine="engine" />
+          <Toolbar :engine="engine" :paused="state?.paused ?? false" />
           <label class="ed-label">剧本（JSON，改后点“应用”）</label>
           <textarea v-model="sceneText" class="ed-scene" spellcheck="false" />
           <button class="ed-apply" @click="applyScene">✔ 应用到预览</button>
