@@ -33,7 +33,7 @@ export const baseTheme: AmesuConfig = {
     dialogue: { pad: 24, boxH: 140, bottom: 24, radius: 16, nameDX: 22, nameDY: 36, textDX: 22, textDY: 72, textPX: 22, lineH: 34 },
     choice: { width: 360, height: 52, gap: 18, topGap: 44, radius: 12, textDX: 24, textDY: 7, hintDX: -64, hintDY: -10, minY: 60 },
     hud: { x: 12, y: 22 },
-    sprite: { heightRatio: 0.48, bottomReserve: 172, shadowA: 0.25, shadowW: 0.32, shadowH: 14, shadowDY: 6 },
+    sprite: { heightRatio: 0.42, bottomReserve: 172, shadowA: 0.25, shadowW: 0.32, shadowH: 14, shadowDY: 6 },
   },
   particle: {
     rain: [
@@ -43,7 +43,7 @@ export const baseTheme: AmesuConfig = {
   placeholder: { size: 256, vignetteA: 0.35, glowA: 0.10, skinA: 0.25 },
   assets: { bg: 'bg/city_warm.jpg', char: 'char/hero_happy.png', bgm: 'audio/bgm/JieWang-piano.mp3', sfx: 'audio/sfx/click.wav', voice: 'audio/voice/voice.wav' },
   effect: {
-    character: { move: { duration: 500 }, enter: { duration: 400 }, exit: { duration: 300 } },
+    character: { move: { duration: 900 }, enter: { duration: 400 }, exit: { duration: 300 } },
     speaker: { treatment: 'gray', grayFilter: 'grayscale(0.85) brightness(0.72)', dimOpacity: 0.72, spriteSuffix: '_talk' },
     transition: { crossfade: 800 },
     tags: { hit: 'brightness(1.9) saturate(0.2) contrast(1.4) hue-rotate(-30deg)', joy: 'brightness(1.35) saturate(1.9) hue-rotate(12deg)', shock: 'brightness(2) contrast(1.8) hue-rotate(28deg)', 'hurt': 'grayscale(.7) brightness(1.5) contrast(1.2)' },

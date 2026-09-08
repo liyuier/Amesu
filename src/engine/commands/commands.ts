@@ -237,7 +237,11 @@ export const commands = {
     const pos = this._defaultPositions(ids.length);
     for (const [id, c] of this.chars.entries()) {
       const idx = ids.indexOf(id);
-      if (idx >= 0) { c.xFracTo = pos[idx]; c.leaving = false; if (c.opacityTo === 0) c.opacityTo = 1; }
+      if (idx >= 0) {
+        // 单人镜头：保持当前位置（避免把主角强推回中间）；多人按人数排位
+        c.xFracTo = ids.length === 1 ? (c.xFrac ?? 0.5) : pos[idx];
+        c.leaving = false; if (c.opacityTo === 0) c.opacityTo = 1;
+      }
       else { c.leaving = true; c.opacityTo = 0; } // 不在镜头 → 淡出
     }
   }
