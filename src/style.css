@@ -64,7 +64,7 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans
 .ed-asset-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ed-agroup-empty { color:var(--muted); font-size:12px; }
 .ed-fs-bar { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-.ed-fs-path { font:11px monospace; color:#cbd2df; word-break:break-all; }
+.ed-fs-path { font:13px 'Noto Sans SC',-apple-system,'PingFang SC','Microsoft YaHei',sans-serif; color:#cbd2df; word-break:break-all; }
 .ed-fs-item { display:flex; align-items:center; gap:6px; padding:5px 6px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); }
 .ed-fs-item:hover { background:#2a2b35; }
 .ed-fs-icon { width:16px; height:16px; }

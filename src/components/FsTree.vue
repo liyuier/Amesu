@@ -17,7 +17,7 @@ const open = ref(false);
       <span class="ft-name">{{ node.name }}</span>
     </div>
     <div v-if="node.type==='dir' && open && node.children">
-      <FsTree v-for="c in node.children" :key="c.name" :node="c" :depth="(depth || 0) + 1" />
+      <FsTree v-for="c in children" :key="c.name" :node="c" :depth="(depth || 0) + 1" />
     </div>
   </div>
 </template>

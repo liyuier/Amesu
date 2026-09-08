@@ -137,7 +137,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
               <div v-for="g in assetGroups" :key="g.label" class="ed-agroup">
                 <div class="ed-agroup-title">{{ g.label }}</div>
                 <div v-if="g.items.length" class="ed-assets">
-                  <div v-for="a in g.items" :key="a.rel" class="ed-asset" :title="a.rel">
+                  <div v-for="a in g.items" :key="a.rel" class="ed-asset" :class="{ audio: ['mp3','wav','ogg'].includes(a.kind) }" :title="a.rel">
                     <img v-if="['png','jpg','jpeg','webp','gif'].includes(a.kind)" :src="a.url" class="ed-asset-thumb" @click="openLb(a.url)" title="点击查看大图" />
                     <audio v-else-if="['mp3','wav','ogg'].includes(a.kind)" :src="a.url" controls class="ed-asset-audio" />
                     <video v-else-if="['mp4','webm'].includes(a.kind)" :src="a.url" class="ed-asset-video" @click="openVid(a.url)" title="点击播放" />
@@ -184,7 +184,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
       </div>
     </div>
 
-    <Lightbox v-model:visible="lbVisible" :imgs="[lbSrc]" />
+    <Lightbox v-model:visible="lbVisible" :imgs="[lbSrc]" @close="lbVisible=false" />
     <div v-if="vidVisible" class="vid-modal" @click.self="vidVisible=false"><video :src="vidSrc" controls autoplay class="vid-modal-video" /><button class="vid-close" @click="vidVisible=false">✕ 关闭</button></div>
 
     <footer class="ed-statusbar">
