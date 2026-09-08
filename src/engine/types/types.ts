@@ -89,7 +89,7 @@ export interface Task {
 // —— 运行时内部（引擎持有，不用 any） ——
 export type Drawable = HTMLImageElement | HTMLCanvasElement;
 export interface BgRuntime { cur: Drawable | null; prev: Drawable | null; mix: number; }
-export interface SpriteRuntime { id: string; expr: string; color: string; sprite: Drawable | null; xFrac: number; z: number; opacity: number; scaleX: number; opacityT?: number; opacityFrom?: number; opacityTo?: number; }
+export interface SpriteRuntime { id: string; expr: string; color: string; sprite: Drawable | null; xFrac: number; xFracTo?: number; z: number; opacity: number; scaleX: number; opacityT?: number; opacityFrom?: number; opacityTo?: number; }
 export interface SayRuntime { who: string; text: string; typewriter: number; start: number; reveal: number; typingDone: boolean; advance: boolean; }
 export interface ChoiceRuntime { chosen: number | null; options: ChoiceOption[]; boxes: { x: number; y: number; w: number; h: number }[]; }
 export interface FadeRuntime { color: string; a: number; }

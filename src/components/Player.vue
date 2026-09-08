@@ -13,7 +13,7 @@ const bgStyle = computed(() => ({
 const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; flip: boolean }) => ({
   left: `${sp.pos * 100}%`, opacity: String(sp.opacity), zIndex: String(sp.z),
   transform: `translateX(-50%)${sp.flip ? ' scaleX(-1)' : ''}`,
-  transition: 'left .5s ease, transform .5s ease, filter .3s ease',
+  transition: 'filter .3s ease', // 移动/淡入由引擎逐步插值驱动；这里只为“说话者高亮”的灰化做平滑
   filter: props.state.say?.who === sp.id ? '' : 'grayscale(0.85) brightness(0.72)',
 });
 const rain = computed(() => {

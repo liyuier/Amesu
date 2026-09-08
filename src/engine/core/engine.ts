@@ -315,6 +315,17 @@ export class Engine {
     this.overlays = this.overlays.filter((o) => !o.dead && (this.time - o.start < o.duration));
     // 转场蒙版衰减
     if (this.fade.a > 0 && this.activeTasks.length === 0) this.fade.a = Math.max(0, this.fade.a - dt / 500);
+    // 人物淡入/淡出 + 平滑移动：向目标值线性插值（400ms 淡入淡出 / 500ms 移动）
+    for (const c of this.chars.values()) {
+      if (c.opacityTo !== undefined && c.opacity !== c.opacityTo) {
+        const st = dt / 400, d = c.opacityTo - c.opacity;
+        c.opacity = clamp(Math.abs(d) <= st ? c.opacityTo : c.opacity + Math.sign(d) * st, 0, 1); // 一步到位，避免过冲抖动
+      }
+      if (c.xFracTo !== undefined && c.xFrac !== c.xFracTo) {
+        const st = dt / 500, d = c.xFracTo - (c.xFrac || 0);
+        c.xFrac = clamp(Math.abs(d) <= st ? c.xFracTo : (c.xFrac || 0) + Math.sign(d) * st, 0, 1);
+      }
+    }
     this._advance();
   }
 

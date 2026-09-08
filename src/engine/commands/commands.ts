@@ -211,9 +211,9 @@ export const commands = {
       const prev: Partial<SpriteRuntime> = this.chars.get(d.id as string) || {};
       this.chars.set(d.id, {
         id: d.id, sprite, expr: d.expr, color,
-        xFrac: frac, z: d.z ?? prev.z ?? 10,   // 始终用最新位置 → 支持“再发 char 即移动”(CSS transition 平滑)
-        opacity: prev.opacity ?? (d.effect === 'fade-in' ? 0 : 1),
-        opacityFrom: 0, opacityTo: 1,
+        xFrac: prev.xFrac ?? frac, xFracTo: frac, z: d.z ?? prev.z ?? 10,   // 位置引擎逐步插值 → 平滑移动
+        opacity: d.effect === 'fade-in' ? 0 : (prev.opacity ?? 1),
+        opacityFrom: d.effect === 'fade-in' ? 0 : (prev.opacity ?? 1), opacityTo: 1,
         scaleX: d.flip ? -1 : (prev.scaleX ?? 1),
       });
     });
