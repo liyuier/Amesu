@@ -183,11 +183,12 @@ export class Engine {
   }
 
   async _charSprite(id, expr, color, suffix = '') {
-    const src = `char/${id}_${expr || 'normal'}${suffix}.png`;
+    // 说话口型：suffix==='talk' → assets.charTalk，否则 assets.char(闭嘴)；真实素材由工程提供
+    const src = suffix === 'talk' ? this.config.assets.charTalk : this.config.assets.char;
     const img = await this._loadImage(src, 'char');
     if (img) return img;
-    const def = this.config.assets.char; if (def) { const key = 'def_char_' + def; const url = this._resolve(def); const d = await this._loadImage(url, 'char'); if (d) { this._imgCache.set(src, d); return d; } }
-    return null; // 无立绘：按配置渲染（跳过）
+    const def = this.config.assets.char; if (def && suffix === 'talk') { const d = await this._loadImage(def, 'char'); if (d) { this._imgCache.set(src, d); return d; } }
+    return null;
   }
 
   async _audio(kind, src) {

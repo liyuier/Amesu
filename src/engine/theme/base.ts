@@ -41,10 +41,10 @@ export const baseTheme: AmesuConfig = {
     ],
   },
   placeholder: { size: 256, vignetteA: 0.35, glowA: 0.10, skinA: 0.25 },
-  assets: { bg: 'bg/city_warm.jpg', char: 'char/hero_happy.png', bgm: 'audio/bgm/JieWang-piano.mp3', sfx: 'audio/sfx/click.wav', voice: 'audio/voice/voice.wav' },
+  assets: { bg: 'bg/city_warm.jpg', char: 'char/not_talk.png', charTalk: 'char/talk.png', bgm: 'audio/bgm/JieWang-piano.mp3', sfx: 'audio/sfx/click.wav', voice: 'audio/voice/voice.wav' },
   effect: {
     character: { move: { duration: 900 }, enter: { duration: 400 }, exit: { duration: 300 } },
-    speaker: { treatment: 'gray', grayFilter: 'grayscale(0.85) brightness(0.72)', dimOpacity: 0.72, spriteSuffix: '_talk' },
+    speaker: { treatment: 'gray', grayFilter: 'grayscale(0.85) brightness(0.72)', dimOpacity: 0.72, spriteSuffix: 'talk' },
     transition: { crossfade: 800 },
     tags: { hit: 'brightness(1.9) saturate(0.2) contrast(1.4) hue-rotate(-30deg)', joy: 'brightness(1.35) saturate(1.9) hue-rotate(12deg)', shock: 'brightness(2) contrast(1.8) hue-rotate(28deg)', 'hurt': 'grayscale(.7) brightness(1.5) contrast(1.2)' },
   },

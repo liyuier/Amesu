@@ -36,7 +36,7 @@ export interface AmesuParticle { rain: { count: number; lenMin: number; lenVar: 
 
 export interface AmesuPlaceholder { size: number; vignetteA: number; glowA: number; skinA: number; }
 
-export interface AmesuAssets { bg: string; char: string; bgm: string; sfx: string; voice: string; }
+export interface AmesuAssets { bg: string; char: string; charTalk: string; bgm: string; sfx: string; voice: string; }
 
 // —— 动效归属（架构）——
 // 确定性时基动效（位置/透明度/缩放/切换等随时间运动的量）由【引擎】逐帧插值（保证切帧/导出可复现）。
