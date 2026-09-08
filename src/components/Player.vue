@@ -40,6 +40,8 @@ const charStyle = (i: number) => ({ opacity: i < (props.state.say?.reveal ?? 0) 
 const blockFx = (name: string) => { const u = props.state.uiFx; if (!u || u.block !== name) return {}; const f = u.tags.map((t) => props.theme?.effect.tags[t]).filter(Boolean).join(' '); return f ? { filter: f } : {}; };
 // 素材加载态：尚无背景(且无上一帧)时显示“加载中”，避免闪黑
 const sceneLoading = computed(() => !props.state.bg?.cur && !props.state.bg?.prev);
+const videoEl = ref<HTMLVideoElement | null>(null);
+watch(() => props.state?.speed, (s) => { if (videoEl.value && typeof s === 'number') videoEl.value.playbackRate = s; });
 const rain = computed(() => {
   const fx = props.state.effects.find((e) => e.type.includes('rain'));
   if (!fx) return [] as { x: number; delay: number; dur: number; len: number }[];
@@ -65,7 +67,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
     <div v-if="sceneLoading" class="ams-loading"><span class="ams-loading-dot">●</span> 加载中…</div>
     <div v-if="state.cg" class="ams-cg" :style="cgStyle"></div>
     <div v-if="state.html" class="ams-html" v-html="state.html"></div>
-    <video v-if="state.video && state.video.src" class="ams-video" :class="{ bg: state.video.mode === 'bg' }" :src="state.video.src" :loop="state.video.mode === 'bg'" autoplay muted playsinline @ended="emit('videoEnded')" @click="emit('videoEnded')" title="点击跳过"></video>
+    <video v-if="state.video && state.video.src" ref="videoEl" class="ams-video" :class="{ bg: state.video.mode === 'bg' }" :src="state.video.src" :loop="state.video.mode === 'bg'" autoplay muted playsinline @ended="emit('videoEnded')" @click="emit('videoEnded')" title="点击跳过"></video>
     <div class="ams-fx"><span v-for="(d, i) in rain" :key="i" class="ams-drop" :style="dropStyle(d)"></span></div>
     <div class="ams-dialogue" :style="{ ...dialogueStyle, ...blockFx('dialogue') }">
       <div v-if="state.say && state.say.who" class="ams-name">{{ state.say.who }}</div>

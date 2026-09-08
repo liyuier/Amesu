@@ -422,7 +422,8 @@ export class Engine {
     this.lastSay = null; this.pendingChoice = null; this.cg = null; this.html = null; this.video = null; this.uiFx = {};
     for (let j = 0; j <= i; j++) { top.index = j; const d = arr[j]; if (d) { this._spawn(d); } }
     this.bg.mix = 1; // 背景立即完整显示（否则停在淡入 mix=0 → 黑）
-    this.activeTasks = this.activeTasks.filter((t) => t.kind === 'bg' && this._bgSrc); // 仅保留当前背景任务
+    this.video = this.video && this.video.mode === 'bg' ? this.video : null; // 保留背景循环视频；跳到/越过 CG 视频步时清除(一次性事件)
+    this.activeTasks = this.activeTasks.filter((t) => t.kind === 'bg' && this._bgSrc);
   }
   setScripts(scripts: Story | Record<string, unknown>) {
     this.story = loadStory(scripts);
@@ -468,7 +469,7 @@ export class Engine {
     return {
       cg: this.cg ? { src: this._resolve(this.cg.src), opacity: this.cg.opacity } : null,
       uiFx: this.uiFx && this.time - this.uiFx.start < this.uiFx.dur ? { block: this.uiFx.block, tags: this.uiFx.tags } : null,
-      html: this.html, video: this.video ? { src: this._resolve(this.video.src), skip: this.video.skip } : null,
+      html: this.html, video: this.video ? { src: this._resolve(this.video.src), skip: this.video.skip, mode: this.video.mode as 'bg' | 'cg' } : null,
       bg: (this.bg.cur || this.bg.prev) ? {
         cur: this.bg.cur ? { src: this._resolve(this._bgSrc || ''), opacity: this.bg.mix, pos: this._bgPos } : null,
         prev: this.bg.prev ? { src: this._resolve(this._bgPrevSrc || ''), opacity: 1 - this.bg.mix, pos: this._bgPos } : null,
