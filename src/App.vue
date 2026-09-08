@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 可视化编辑器：VSCode 式【可拖动分栏】布局 = 顶栏 / 左工具区(可拖宽) + 中央预览(等比留黑边) + 底部工具区(可拖高) / 状态栏。
 // 交付物 = 开发机上选定的项目目录（服务端 API 列出/读取）。
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import { createEngine, type Engine, type SceneState, type Project, type AmesuConfig } from '@engine';
 import Player from './components/Player.vue';
 import Toolbar from './components/Toolbar.vue';
@@ -10,7 +10,7 @@ import DirectoryPicker from './components/DirectoryPicker.vue';
 import StoryCanvas from './components/StoryCanvas.vue';
 import FsTree from './components/FsTree.vue';
 import { Image as ImageIcon, FolderOpen, Search } from 'lucide-vue-next';
-import Lightbox from 'vue-easy-lightbox';
+
 import { useProject } from './composables/useProject.ts';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -23,7 +23,8 @@ const state = ref<SceneState | null>(null);
 const inspect = ref('');
 const sceneText = ref('');
 const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
-const sideTab = ref<'assets'|'fs'|'inspect'>('assets');
+const sideTab = ref<'assets'|'fs'|'inspect'|null>('assets');
+function toggleAct(t: 'assets'|'fs'|'inspect') { sideTab.value = sideTab.value === t ? null : t; }
 const lbVisible = ref(false); const lbSrc = ref(''); const vidVisible = ref(false); const vidSrc = ref('');
 function openLb(url: string) { lbSrc.value = url; lbVisible.value = true; }
 function openVid(url: string) { vidSrc.value = url; vidVisible.value = true; }
@@ -35,6 +36,7 @@ const assetGroups = computed(() => ([
 ]));
 // 文件系统浏览器
 const fsTree = ref<{ name: string; children: { name: string; type: string; children?: any[] }[] } | null>(null);
+const fsTop = computed(() => { const c = fsTree.value?.children || []; return [...c].sort((a, b) => (a.type === 'dir' ? -1 : 0) - (b.type === 'dir' ? -1 : 0) || a.name.localeCompare(b.name)); });
 async function fetchTree(p: string) { try { fsTree.value = await (await fetch('/api/fs/tree?path=' + encodeURIComponent(p))).json(); } catch (e) { fsTree.value = null; } }
 watch(name, (n) => { if (n) { loadAssets(n); fetchTree(n); } });
 // 时间轴：当前场景的指令序列，高亮当前步
@@ -127,11 +129,11 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
     <div class="ed-mid">
       <aside class="ed-side" :style="{ width: sideWidth + 'px' }">
         <div class="ed-activity">
-          <button class="ed-activity-btn" :class="{on: sideTab==='assets'}" title="素材" @click="sideTab='assets'"><ImageIcon /></button>
-          <button class="ed-activity-btn" :class="{on: sideTab==='fs'}" title="文件系统" @click="sideTab='fs'"><FolderOpen /></button>
-          <button class="ed-activity-btn" :class="{on: sideTab==='inspect'}" title="检查器" @click="sideTab='inspect'"><Search /></button>
+          <button class="ed-activity-btn" :class="{on: sideTab==='assets'}" title="素材(再点收起)" @click="toggleAct('assets')"><ImageIcon /></button>
+          <button class="ed-activity-btn" :class="{on: sideTab==='fs'}" title="文件系统(再点收起)" @click="toggleAct('fs')"><FolderOpen /></button>
+          <button class="ed-activity-btn" :class="{on: sideTab==='inspect'}" title="检查器(再点收起)" @click="toggleAct('inspect')"><Search /></button>
         </div>
-        <div class="ed-tool">
+        <div class="ed-tool" v-if="sideTab">
           <template v-if="engine">
             <template v-if="sideTab==='assets'">
               <div v-for="g in assetGroups" :key="g.label" class="ed-agroup">
@@ -150,7 +152,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
             <template v-else-if="sideTab==='fs'">
               <div class="ed-fs">
                 <div class="ed-fs-bar"><FolderOpen class="ed-fs-icon" /><span class="ed-fs-path">{{ fsTree?.name || '（项目根）' }}（树 · 点目录展开）</span></div>
-                <FsTree v-if="fsTree" v-for="c in fsTree.children" :key="c.name" :node="c" :depth="0" />
+                <FsTree v-if="fsTop.length" v-for="c in fsTop" :key="c.name" :node="c" :depth="0" />
                 <div v-else class="ed-agroup-empty">（暂无内容）</div>
               </div>
             </template>
@@ -184,8 +186,12 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
       </div>
     </div>
 
-    <Lightbox v-model:visible="lbVisible" :imgs="[lbSrc]" @close="lbVisible=false" />
-    <div v-if="vidVisible" class="vid-modal" @click.self="vidVisible=false"><video :src="vidSrc" controls autoplay class="vid-modal-video" /><button class="vid-close" @click="vidVisible=false">✕ 关闭</button></div>
+        <div v-if="lbVisible" class="pic-modal" @click.self="lbVisible=false">
+      <img :src="lbSrc" class="pic-modal-img" />
+      <button class="pic-close" @click="lbVisible=false">✕ 关闭</button>
+    </div>
+    <div v-if="vidVisible" class="vid-modal" @click.self="vidVisible=false"><video :src="vidSrc" controls autoplay class="vid-modal-video" />
+      <button class="vid-close" @click="vidVisible=false">✕ 关闭</button></div>
 
     <footer class="ed-statusbar">
       <span v-if="engine">项目:{{ name }} · scene:{{ state?.scene ?? '-' }} · t:{{ state?.time }}ms · {{ state?.mode }} x{{ state?.speed }}{{ state?.ended ? ' · 结束' : '' }}</span>

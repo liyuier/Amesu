@@ -65,7 +65,13 @@ function addNode() { emit('save', [...props.sceneDirs, { type: 'say', who: '', t
 </script>
 
 <template>
-  <div class="sc-root">
+  <div class="sc-row">
+    <div v-if="selected != null" class="sc-prop">
+      <span class="sc-prop-title">结点 #{{ selected }}（{{ props.sceneDirs[selected]?.type }}）</span>
+      <textarea v-model="propText" class="sc-json" spellcheck="false" />
+      <button @click="applyProp">✔ 应用</button>
+    </div>
+    <div class="sc-root">
     <div class="sc-bar">
       <button @click="addNode">＋ 添加结点</button>
       <span class="sc-hint">{{ sceneName }} · 拖拽平移/滚轮缩放 · 点结点编辑 · mermaid 自渲染；橙色=当前步</span>
@@ -75,10 +81,6 @@ function addNode() { emit('save', [...props.sceneDirs, { type: 'say', who: '', t
         <div ref="wrap" class="mermaid-wrap"></div>
       </div>
     </div>
-    <div v-if="selected != null" class="sc-prop">
-      <span class="sc-prop-title">结点 #{{ selected }}（{{ props.sceneDirs[selected]?.type }}）</span>
-      <textarea v-model="propText" class="sc-json" spellcheck="false" />
-      <button @click="applyProp">✔ 应用</button>
     </div>
   </div>
 </template>

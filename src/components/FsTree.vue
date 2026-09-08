@@ -1,10 +1,14 @@
 <script setup lang="ts">
-// 递归文件树（VSCode 风格）：目录可展开/收起，文件展示。
-import { ref } from 'vue';
+// 递归文件树（VSCode 风格）：目录可展开/收起，目录在前、文件在后（各自按名称排序）。
+import { ref, computed } from 'vue';
 import { FolderOpen, ChevronRight } from 'lucide-vue-next';
 type Node = { name: string; type: 'dir' | 'file'; children?: Node[]; size?: number };
 const props = defineProps<{ node: Node; depth?: number }>();
 const open = ref(false);
+const children = computed(() => {
+  if (!props.node.children) return [];
+  return [...props.node.children].sort((a, b) => (a.type === 'dir' ? -1 : 0) - (b.type === 'dir' ? -1 : 0) || a.name.localeCompare(b.name));
+});
 </script>
 
 <template>
@@ -16,7 +20,7 @@ const open = ref(false);
       <span v-else class="ft-dot">·</span>
       <span class="ft-name">{{ node.name }}</span>
     </div>
-    <div v-if="node.type==='dir' && open && node.children">
+    <div v-if="node.type==='dir' && open" class="ft-children">
       <FsTree v-for="c in children" :key="c.name" :node="c" :depth="(depth || 0) + 1" />
     </div>
   </div>
