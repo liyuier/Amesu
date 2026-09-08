@@ -38,7 +38,7 @@ export const commands = {
   }
 ,
   _taskBg(this: Engine, d) {
-    const duration = toMs(d.duration) || (d.transition && d.transition !== 'none' ? 600 : 0);
+    const duration = toMs(d.duration) || (d.transition && d.transition !== 'none' ? this.config.effect.transition.crossfade : 0);
     const start = this.time;
     const prevMix = this.bg.cur ? this.bg.mix : 1;
     this._applyBgStart(d);
@@ -195,7 +195,9 @@ export const commands = {
   }
 ,
   _applyBgStart(this: Engine, d) {
+    this._bgPrevSrc = this._bgSrc;
     this._bgSrc = (d.src as string) || '';
+    this._bgPos = (d.pos as string) || 'center';
     this.bg.prev = this.bg.cur;
     this._bg(d.src).then((img) => {
       this.bg.cur = img; this.bg.mix = 0;

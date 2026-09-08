@@ -57,7 +57,9 @@ export class Engine {
   domUI = false;
   domScene = false; // DOM(Vue) 视图接管场景，画布留空（仅导出时绘制）
   exportMode = false; // 导出/录制：让画布绘制完整帧
-  _bgSrc = ""; // 当前背景的原始 src（供 DOM background-image 使用） // 当采用 DOM(Vue) 视图时，画布跳过 UI 层，由 DOM 呈现
+  _bgSrc = ""; // 当前背景的原始 src
+  _bgPrevSrc = ""; // 上一次背景的 src（供 DOM 交叉淡出）
+  _bgPos = 'center'; // 背景定位/平移（供 DOM background-image 使用） // 当采用 DOM(Vue) 视图时，画布跳过 UI 层，由 DOM 呈现
   audio!: AudioManager;
   ctx!: CanvasRenderingContext2D;
   canvas!: HTMLCanvasElement;
@@ -431,7 +433,10 @@ export class Engine {
       .map((c) => ({ id: c.id, expr: c.expr, pos: c.xFrac, z: c.z, opacity: c.opacity, flip: c.scaleX < 0, color: c.color, ready: !!c.sprite, src: this._spriteSrc(c), speaking: c.id === this.lastSay?.who, fx: c.fx }))
       .sort((a, b) => a.z - b.z);
     return {
-      bg: this.bg.cur ? { src: this._resolve(this._bgSrc || ''), mix: this.bg.mix } : null,
+      bg: (this.bg.cur || this.bg.prev) ? {
+        cur: this.bg.cur ? { src: this._resolve(this._bgSrc || ''), opacity: this.bg.mix, pos: this._bgPos } : null,
+        prev: this.bg.prev ? { src: this._resolve(this._bgPrevSrc || ''), opacity: 1 - this.bg.mix, pos: this._bgPos } : null,
+      } : null,
       sprites,
       say: this.lastSay ? { who: this.lastSay.who, text: this.lastSay.text, reveal: this.lastSay.reveal } : null,
       choices: this.pendingChoice ? { chosen: this.pendingChoice.chosen, options: this.pendingChoice.options } : null,

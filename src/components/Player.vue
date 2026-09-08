@@ -6,10 +6,10 @@ const RAIN = DEFAULT_CONFIG.particle.rain[0];
 const props = defineProps<{ state: SceneState; theme?: AmesuConfig }>();
 const emit = defineEmits<{ advance: []; choose: [index: number] }>();
 
-const bgStyle = computed(() => ({
-  backgroundImage: props.state.bg ? `url("${props.state.bg.src}")` : undefined,
-  opacity: String(props.state.bg?.mix ?? 1),
-}));
+const bgStyle = (layer: { src: string; opacity: number; pos: string } | null) => layer ? ({
+  backgroundImage: `url("${layer.src}")`, opacity: String(layer.opacity), backgroundPosition: layer.pos, backgroundSize: 'cover', backgroundRepeat: 'no-repeat',
+}) : {};
+
 // 对话高度依据【完整文本】估算行数（而非逐字），一句内稳定 → 不逐帧回流抖动；又能随句长自适应
 const dialogueStyle = computed(() => {
   const t = props.state.say?.text || '';
@@ -30,6 +30,9 @@ const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; 
     filter: [fxFilter, speakerFilter].filter(Boolean).join(' ') || '',
   };
 };
+// 逐字淡入：按引擎的确定性 reveal 决定每个字符透明度（0/1 + opacity 过渡）；箱体按整句高度稳定
+const textChars = computed(() => Array.from(props.state.say?.text || ''));
+const charStyle = (i: number) => ({ opacity: i < (props.state.say?.reveal ?? 0) ? 1 : 0, transition: 'opacity .2s ease' });
 const rain = computed(() => {
   const fx = props.state.effects.find((e) => e.type.includes('rain'));
   if (!fx) return [] as { x: number; delay: number; dur: number; len: number }[];
@@ -46,7 +49,8 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
 
 <template>
   <div class="ams-stage" @click="emit('advance')">
-    <div v-if="state.bg" class="ams-bg" :style="bgStyle"></div>
+    <div v-if="state.bg?.prev" class="ams-bg" :style="bgStyle(state.bg.prev)"></div>
+    <div v-if="state.bg?.cur" class="ams-bg" :style="bgStyle(state.bg.cur)"></div>
     <div class="ams-sprites">
       <img v-for="sp in state.sprites" v-show="sp.ready && sp.src" :key="sp.id" class="ams-sprite"
            :src="sp.src" :data-id="sp.id" :style="spriteStyle(sp)" draggable="false" />
@@ -54,7 +58,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
     <div class="ams-fx"><span v-for="(d, i) in rain" :key="i" class="ams-drop" :style="dropStyle(d)"></span></div>
     <div class="ams-dialogue" :style="dialogueStyle">
       <div v-if="state.say && state.say.who" class="ams-name">{{ state.say.who }}</div>
-      <div class="ams-text">{{ state.say ? state.say.text.slice(0, state.say.reveal) : '' }}</div>
+      <div class="ams-text"><span v-for="(c, i) in textChars" :key="i" :style="charStyle(i)">{{ c }}</span></div>
     </div>
     <div v-if="state.choices && state.choices.chosen == null" class="ams-choice-wrap">
       <button v-for="(o, i) in state.choices.options" :key="i" class="ams-choice" :data-index="i"

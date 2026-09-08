@@ -54,7 +54,8 @@ export interface EngineOptions {
 }
 
 // —— 演出状态快照（Vue 视图按此渲染，元素级可检查） ——
-export interface BgState { src: string; mix: number; }
+export interface BgLayerState { src: string; opacity: number; pos: string; }
+export interface BgState { cur: BgLayerState | null; prev: BgLayerState | null; }
 export interface SpriteState {
   id: string; expr: string; pos: number; z: number;
   opacity: number; flip: boolean; color: string; ready: boolean; src: string; speaking?: boolean; fx?: string[];
