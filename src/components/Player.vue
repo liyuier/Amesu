@@ -18,11 +18,11 @@ const dialogueStyle = computed(() => {
   const h = 34 + lines * 32 + 22;                // 名字行 + 文本行 + 内边距
   return { minHeight: Math.min(h, 200) + 'px', transition: 'height .3s ease' };
 });
-const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; flip: boolean }) => ({
+const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; flip: boolean; speaking?: boolean }) => ({
   left: `${sp.pos * 100}%`, opacity: String(sp.opacity), zIndex: String(sp.z),
   transform: `translateX(-50%)${sp.flip ? ' scaleX(-1)' : ''}`,
   transition: 'filter .3s ease', // 移动/淡入由引擎逐步插值驱动；这里只为“说话者高亮”的灰化做平滑
-  filter: props.state.say?.who === sp.id ? '' : 'grayscale(0.85) brightness(0.72)',
+  filter: sp.speaking ? '' : 'var(--ams-nonspeaker-filter, grayscale(0.85) brightness(0.72))',
 });
 const rain = computed(() => {
   const fx = props.state.effects.find((e) => e.type.includes('rain'));

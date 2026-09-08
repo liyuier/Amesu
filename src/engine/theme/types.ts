@@ -37,6 +37,27 @@ export interface AmesuParticle { rain: { count: number; lenMin: number; lenVar: 
 export interface AmesuPlaceholder { size: number; vignetteA: number; glowA: number; skinA: number; }
 
 export interface AmesuAssets { bg: string; char: string; bgm: string; sfx: string; voice: string; }
+
+// —— 动效归属（架构）——
+// 确定性时基动效（位置/透明度/缩放/切换等随时间运动的量）由【引擎】逐帧插值（保证切帧/导出可复现）。
+// 这里是【主题】声明的“表现参数/语义处理”：时长、缓动、以及“说话者如何表现”等可选、可覆盖、可外输的项。
+export interface AmesuCharacterEffect {
+  move: { duration: number };   // 人物移动补间时长(ms)
+  enter: { duration: number };  // 入场(淡入)时长(ms)
+  exit: { duration: number };   // 离场(淡出)时长(ms)
+}
+export interface AmesuSpeakerEffect {
+  treatment: 'gray' | 'sprite' | 'none'; // 说话者表现：gray 灰化/压暗 | sprite 切说话贴图(嘴型) | none 不处理
+  grayFilter: string;                    // treatment==='gray' 时非说话者滤镜
+  dimOpacity: number;                    // 非说话者透明度
+  spriteSuffix: string;                  // treatment==='sprite' 时说话者的贴图后缀（如 _talk）
+}
+export interface AmesuTransitionEffect { crossfade: number; } // 背景/CG 交叉淡入淡出时长(ms)
+export interface AmesuEffect {
+  character: AmesuCharacterEffect;
+  speaker: AmesuSpeakerEffect;
+  transition: AmesuTransitionEffect;
+}
 export interface AmesuDefaults { charColor: string; charW: number; charH: number; effectDuration: number; }
 
 /** 主题元规范（Theme 的 Schema）。所有可调项（字体/颜色/布局/粒子/占位/默认素材/默认值）都声明在此。 */
@@ -47,6 +68,7 @@ export interface AmesuConfig {
   particle: AmesuParticle;
   placeholder: AmesuPlaceholder;
   assets: AmesuAssets;
+  effect: AmesuEffect;
   defaults: AmesuDefaults;
 }
 

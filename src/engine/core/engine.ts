@@ -316,13 +316,15 @@ export class Engine {
     // 转场蒙版衰减
     if (this.fade.a > 0 && this.activeTasks.length === 0) this.fade.a = Math.max(0, this.fade.a - dt / 500);
     // 人物淡入/淡出 + 平滑移动：向目标值线性插值（400ms 淡入淡出 / 500ms 移动）
+    const EF = this.config.effect.character; // 时长来自【主题】；补间本身由引擎(确定性)执行
     for (const c of this.chars.values()) {
       if (c.opacityTo !== undefined && c.opacity !== c.opacityTo) {
-        const st = dt / 400, d = c.opacityTo - c.opacity;
+        const dur = c.opacityTo > c.opacity ? EF.enter.duration : EF.exit.duration;
+        const st = dt / dur, d = c.opacityTo - c.opacity;
         c.opacity = clamp(Math.abs(d) <= st ? c.opacityTo : c.opacity + Math.sign(d) * st, 0, 1); // 一步到位，避免过冲抖动
       }
       if (c.xFracTo !== undefined && c.xFrac !== c.xFracTo) {
-        const st = dt / 500, d = c.xFracTo - (c.xFrac || 0);
+        const st = dt / EF.move.duration, d = c.xFracTo - (c.xFrac || 0);
         c.xFrac = clamp(Math.abs(d) <= st ? c.xFracTo : (c.xFrac || 0) + Math.sign(d) * st, 0, 1);
       }
     }
@@ -424,7 +426,7 @@ export class Engine {
     const s = this.state.stack[this.state.stack.length - 1];
     const scene = s ? (Object.keys(this.story.scenes).find((k) => this.story.scenes[k] === s.arr) ?? null) : null;
     const sprites = [...this.chars.values()]
-      .map((c) => ({ id: c.id, expr: c.expr, pos: c.xFrac, z: c.z, opacity: c.opacity, flip: c.scaleX < 0, color: c.color, ready: !!c.sprite, src: this._spriteSrc(c) }))
+      .map((c) => ({ id: c.id, expr: c.expr, pos: c.xFrac, z: c.z, opacity: c.opacity, flip: c.scaleX < 0, color: c.color, ready: !!c.sprite, src: this._spriteSrc(c), speaking: c.id === this.lastSay?.who }))
       .sort((a, b) => a.z - b.z);
     return {
       bg: this.bg.cur ? { src: this._resolve(this._bgSrc || ''), mix: this.bg.mix } : null,

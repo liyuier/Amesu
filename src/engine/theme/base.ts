@@ -42,5 +42,10 @@ export const baseTheme: AmesuConfig = {
   },
   placeholder: { size: 256, vignetteA: 0.35, glowA: 0.10, skinA: 0.25 },
   assets: { bg: 'bg/city_warm.jpg', char: 'char/hero_happy.png', bgm: 'audio/bgm/JieWang-piano.mp3', sfx: 'audio/sfx/click.wav', voice: 'audio/voice/voice.wav' },
+  effect: {
+    character: { move: { duration: 500 }, enter: { duration: 400 }, exit: { duration: 300 } },
+    speaker: { treatment: 'gray', grayFilter: 'grayscale(0.85) brightness(0.72)', dimOpacity: 0.72, spriteSuffix: '_talk' },
+    transition: { crossfade: 800 },
+  },
   defaults: { charColor: '#8fd0ff', charW: 520, charH: 760, effectDuration: 3000 },
 };

@@ -2,7 +2,7 @@
 // 可视化编辑器：VSCode 式【可拖动分栏】布局 = 顶栏 / 左工具区(可拖宽) + 中央预览(等比留黑边) + 底部工具区(可拖高) / 状态栏。
 // 交付物 = 开发机上选定的项目目录（服务端 API 列出/读取）。
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
-import { createEngine, type Engine, type SceneState, type Project, type AmesuColors } from '@engine';
+import { createEngine, type Engine, type SceneState, type Project, type AmesuConfig } from '@engine';
 import Player from './components/Player.vue';
 import Toolbar from './components/Toolbar.vue';
 import Inspector from './components/Inspector.vue';
@@ -51,16 +51,17 @@ function tick() {
   if (engine.value) { state.value = engine.value.getScene(); inspect.value = JSON.stringify(engine.value.inspect(), null, 2); }
   raf = requestAnimationFrame(tick);
 }
-function applyTheme(c: AmesuColors) {
+function applyTheme(c: AmesuConfig) {
   const el = document.documentElement;
-  const map: Record<string, string> = { '--ams-name': c.name, '--ams-dialogue-bg': c.dialogueBg, '--ams-dialogue-border': c.dialogueBorder, '--ams-text': c.text, '--ams-choice-bg': c.choiceBg, '--ams-choice-border': c.choiceBorder, '--ams-choice-text': c.choiceText, '--ams-hud': c.hud, '--ams-shadow': c.shadow, '--ams-fallback-bg': c.fallbackBg };
+  const col = c.colors, sp = c.effect.speaker;
+  const map: Record<string, string> = { '--ams-name': col.name, '--ams-dialogue-bg': col.dialogueBg, '--ams-dialogue-border': col.dialogueBorder, '--ams-text': col.text, '--ams-choice-bg': col.choiceBg, '--ams-choice-border': col.choiceBorder, '--ams-choice-text': col.choiceText, '--ams-hud': col.hud, '--ams-shadow': col.shadow, '--ams-fallback-bg': col.fallbackBg, '--ams-nonspeaker-filter': sp.grayFilter };
   for (const k in map) el.style.setProperty(k, map[k]);
 }
 function launch(project: Project, assetBase: string) {
   engine.value?.stop(); // 避免旧引擎残留
   const resolveAsset = (src: string) => assetBase + src;
   engine.value = createEngine(project, { resolution: project.meta?.resolution, resolveAsset });
-  if (engine.value) applyTheme(engine.value.config.colors);
+  if (engine.value) applyTheme(engine.value.config);
   engine.value.start();
   sceneText.value = JSON.stringify(project.scripts ?? {}, null, 2);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
