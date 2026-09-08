@@ -10,6 +10,14 @@ const bgStyle = computed(() => ({
   backgroundImage: props.state.bg ? `url("${props.state.bg.src}")` : undefined,
   opacity: String(props.state.bg?.mix ?? 1),
 }));
+// 对话高度依据【完整文本】估算行数（而非逐字），一句内稳定 → 不逐帧回流抖动；又能随句长自适应
+const dialogueStyle = computed(() => {
+  const t = props.state.say?.text || '';
+  const charsPerLine = 30;                       // 粗略：每行约 30 个 CJK 字符（1280 宽、20px）
+  const lines = Math.max(1, Math.ceil(t.length / charsPerLine));
+  const h = 34 + lines * 32 + 22;                // 名字行 + 文本行 + 内边距
+  return { minHeight: Math.min(h, 200) + 'px', transition: 'height .3s ease' };
+});
 const spriteStyle = (sp: { id: string; pos: number; opacity: number; z: number; flip: boolean }) => ({
   left: `${sp.pos * 100}%`, opacity: String(sp.opacity), zIndex: String(sp.z),
   transform: `translateX(-50%)${sp.flip ? ' scaleX(-1)' : ''}`,
@@ -38,7 +46,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
            :src="sp.src" :data-id="sp.id" :style="spriteStyle(sp)" draggable="false" />
     </div>
     <div class="ams-fx"><span v-for="(d, i) in rain" :key="i" class="ams-drop" :style="dropStyle(d)"></span></div>
-    <div class="ams-dialogue" :data-time="String(state.time)">
+    <div class="ams-dialogue" :style="dialogueStyle">
       <div v-if="state.say && state.say.who" class="ams-name">{{ state.say.who }}</div>
       <div class="ams-text">{{ state.say ? state.say.text.slice(0, state.say.reveal) : '' }}</div>
     </div>
