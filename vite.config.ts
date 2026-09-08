@@ -41,6 +41,13 @@ function projectApi(): Plugin {
         const u = new URL(req.url || '/', 'http://x');
         const p = u.pathname, q = u.searchParams;
         try {
+          if (p === '/api/asset-list') {
+            const rel = q.get('path') ?? '';
+            const dir = safeJoin(BASE, rel); if (!dir) { res.writeHead(403); res.end('forbidden'); return; }
+            const aRoot = path.join(dir, 'assets'); const out: { rel: string; url: string; kind: string }[] = [];
+            const walk = (d: string, pre: string) => { try { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p2 = path.join(d, e.name); if (e.isDirectory()) walk(p2, pre + e.name + '/'); else if (/.(png|jpe?g|webp|gif|mp3|ogg|wav|mp4)$/i.test(e.name)) out.push({ rel: pre + e.name, url: '/api/asset?path=' + encodeURIComponent(rel) + '&file=' + encodeURIComponent(pre + e.name), kind: e.name.substring(e.name.lastIndexOf('.') + 1) }); } } catch (e) { /* */ } };
+            walk(aRoot, ''); return sendJson(res, out);
+          }
           if (p === '/api/save' && req.method === 'POST') {
             const rel = q.get('path') ?? '';
             const dir = safeJoin(BASE, rel); if (!dir) { res.writeHead(403); res.end('forbidden'); return; }

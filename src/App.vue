@@ -18,6 +18,7 @@ const engine = ref<Engine | null>(null);
 const state = ref<SceneState | null>(null);
 const inspect = ref('');
 const sceneText = ref('');
+const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
 // 时间轴：当前场景的指令序列，高亮当前步
 import { computed } from 'vue';
 const sceneDirs = computed<{ type: string; who?: string }[]>(() => {
@@ -84,7 +85,8 @@ async function applyScene() {
     catch (e) { console.warn('保存失败（回写开发机文件）：', e); }
   }
 }
-watch(loaded, (v) => { if (v && v.project) launch(v.project, v.assetBase); });
+async function loadAssets(path: string) { try { const r = await fetch('/api/asset-list?path=' + encodeURIComponent(path)); assets.value = await r.json(); } catch (e) { assets.value = []; } }
+watch(loaded, (v) => { if (v && v.project) { launch(v.project, v.assetBase); if (name.value) loadAssets(name.value); } });
 onMounted(() => {
   if (mainEl.value) { ro = new ResizeObserver(updateFrame); ro.observe(mainEl.value); updateFrame(); }
   // 脚本轨 HMR：dev-server 广播 reload → 重新打开当前项目（重取/转译 .ts 剧本）
