@@ -57,7 +57,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
     <div v-if="state.bg?.prev" class="ams-bg" :style="bgStyle(state.bg.prev)"></div>
     <div v-if="state.bg?.cur" class="ams-bg" :style="bgStyle(state.bg.cur)"></div>
     <div class="ams-sprites">
-      <img v-for="sp in state.sprites" v-show="sp.ready && sp.src" :key="sp.id" class="ams-sprite"
+      <img v-for="sp in state.sprites" v-show="sp.ready && sp.src" :key="sp.id" class="ams-sprite" :class="{ speaking: sp.speaking }"
            :src="sp.src" :data-id="sp.id" :style="spriteStyle(sp)" draggable="false" />
     </div>
     <div v-if="state.cg" class="ams-cg" :style="cgStyle"></div>

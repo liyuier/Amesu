@@ -41,7 +41,7 @@ export const baseTheme: AmesuConfig = {
     ],
   },
   placeholder: { size: 256, vignetteA: 0.35, glowA: 0.10, skinA: 0.25 },
-  assets: { bg: 'bg/city_warm.jpg', char: 'char/not_talk.png', charTalk: 'char/talk.png', bgm: 'audio/bgm/JieWang-piano.mp3', sfx: 'audio/sfx/click.wav', voice: 'audio/voice/voice.wav' },
+  assets: { bg: 'bg/city_warm.jpg', char: 'char/kokoro.jpg', charTalk: 'char/kokoro.jpg', bgm: 'audio/bgm/JieWang-piano.mp3', sfx: 'audio/sfx/click.wav', voice: 'audio/voice/voice.wav' },
   effect: {
     character: { move: { duration: 900 }, enter: { duration: 400 }, exit: { duration: 300 } },
     speaker: { treatment: 'gray', grayFilter: 'grayscale(0.85) brightness(0.72)', dimOpacity: 0.72, spriteSuffix: 'talk' },

@@ -183,11 +183,13 @@ export class Engine {
   }
 
   async _charSprite(id, expr, color, suffix = '') {
-    // 说话口型：suffix==='talk' → assets.charTalk，否则 assets.char(闭嘴)；真实素材由工程提供
-    const src = suffix === 'talk' ? this.config.assets.charTalk : this.config.assets.char;
-    const img = await this._loadImage(src, 'char');
-    if (img) return img;
-    const def = this.config.assets.char; if (def && suffix === 'talk') { const d = await this._loadImage(def, 'char'); if (d) { this._imgCache.set(src, d); return d; } }
+    // 逐角色：加载 char/{id}.png|jpg|jpeg（不同分辨率由 高度*宽高比 统一渲染）
+    for (const ext of ['png', 'jpg', 'jpeg']) {
+      const src = `char/${id}.${ext}`;
+      const img = await this._loadImage(src, 'char');
+      if (img) { this._imgCache.set(src, img); return img; }
+    }
+    const def = this.config.assets.char; if (def) { const d = await this._loadImage(def, 'char'); if (d) return d; }
     return null;
   }
 
@@ -266,19 +268,6 @@ export class Engine {
   }
 
   // 嘴型分层：说话者(且主题 treatment==='sprite')加载 _talk 贴图，否则普通贴图
-  _syncSpeakerSprites() {
-    const who = this.lastSay?.who ?? '';
-    if (who === this._lastSpeaker) return;
-    this._lastSpeaker = who;
-    const sp = this.config.effect.speaker, useSprite = sp.treatment === 'sprite';
-    for (const [id, c] of this.chars.entries()) {
-      const want = useSprite && id === who ? sp.spriteSuffix : '';
-      if ((c.suffix ?? '') !== want) {
-        c.suffix = want;
-        this._charSprite(id, c.expr, c.color, want).then((sprite) => { const cur = this.chars.get(id); if (cur) cur.sprite = sprite; });
-      }
-    }
-  }
   _advance() {
     let guard = 0;
     while (guard++ < 10000) {
@@ -355,7 +344,6 @@ export class Engine {
     }
     // 离场：淡到 0 后移除
     for (const [id, c] of this.chars.entries()) { if (c.leaving && c.opacity === 0) this.chars.delete(id); }
-    this._syncSpeakerSprites();
     this._advance();
   }
 
