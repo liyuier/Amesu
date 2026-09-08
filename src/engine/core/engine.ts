@@ -94,7 +94,7 @@ export class Engine {
 
     // 运行时状态
     this.time = 0;             // 虚拟时钟（ms）
-    this.speed = 1;            // 快慢放
+    this.speed = 0.5;          // 默认速度(自动播放放慢/至少一半)
     this.paused = false;
     this.ended = false;
     this.state = { stack: [], vars: {} };
@@ -237,7 +237,7 @@ export class Engine {
   }
 
   _reset() {
-    this.episode++; this.time = 0; this.speed = 1; this.paused = false; this.ended = false;
+    this.episode++; this.time = 0; this.speed = 0.5; this.paused = false; this.ended = false;
     this.activeTasks = []; this.overlays = [];
     this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 };
     this.camera = { x: 0, y: 0, zoom: 1 }; this.lastSay = null; this.pendingChoice = null;
@@ -391,8 +391,8 @@ export class Engine {
 
   // ---------- 渲染 ----------
   // ---------- 公开播放控制 ----------
-  play() { this.paused = false; this.audio.ensure(); }
-  pause() { this.paused = true; }
+  play() { this.paused = false; this.audio.ensure(); this.audio.resume(); }
+  pause() { this.paused = true; this.audio.suspend(); }
   setSpeed(x) { this.speed = x; }
   seek(ms) { this.time = ms; }
   restart() { this.stop(); return this.start(); }

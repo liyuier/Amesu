@@ -5,7 +5,7 @@ import type { Engine } from '@engine';
 const props = defineProps<{ engine: Engine | null }>();
 const emit = defineEmits<{ mode: [m: 'interactive' | 'deterministic'] }>();
 const paused = ref(false);
-const speed = ref(1);
+const speed = ref(0.5);
 const mode = ref<'interactive' | 'deterministic'>('interactive');
 const muted = ref(false);
 

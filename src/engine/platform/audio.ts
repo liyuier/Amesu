@@ -28,6 +28,8 @@ export class AudioManager {
     this.muted = false;
   }
 
+  suspend() { try { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); } catch (e) { /* */ } }
+  resume() { try { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); } catch (e) { /* */ } }
   ensure() {
     if (!this.ctx) {
       const AW = window as Window & { webkitAudioContext?: typeof AudioContext };
