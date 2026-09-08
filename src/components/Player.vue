@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // 播放器：把 SceneState 渲染成【全 DOM】—— 这就是“交付物”的画面内容。Vue 第一公民。
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { DEFAULT_CONFIG, type SceneState, type AmesuConfig } from '@engine';
 const RAIN = DEFAULT_CONFIG.particle.rain[0];
 const props = defineProps<{ state: SceneState; theme?: AmesuConfig }>();
