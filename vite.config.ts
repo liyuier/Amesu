@@ -39,6 +39,21 @@ function projectApi(): Plugin {
         const u = new URL(req.url || '/', 'http://x');
         const p = u.pathname, q = u.searchParams;
         try {
+          if (p === '/api/save' && req.method === 'POST') {
+            const rel = q.get('path') ?? '';
+            const dir = safeJoin(BASE, rel); if (!dir) { res.writeHead(403); res.end('forbidden'); return; }
+            let body = ''; req.on('data', (ch) => { body += ch; }); req.on('end', () => {
+              try {
+                const data = JSON.parse(body);
+                const f = (data && data.file) || 'demo.json';
+                const target = safeJoin(path.join(dir, 'scenes'), f);
+                if (!target) { res.writeHead(403); res.end('forbidden'); return; }
+                fs.writeFileSync(target, JSON.stringify(data.scene ?? data, null, 2));
+                sendJson(res, { ok: true, file: target }); broadcast('reload');
+              } catch (e) { res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('save failed: ' + ((e as Error).message)); }
+            });
+            return;
+          }
           if (p === '/__reload') {
             res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
             res.write('retry: 2000\n\n'); sse.add(res); req.on('close', () => sse.delete(res)); return;

@@ -67,7 +67,15 @@ function launch(project: Project, assetBase: string) {
   sceneText.value = JSON.stringify(project.scripts ?? {}, null, 2);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
 }
-function applyScene() { try { engine.value?.setScripts(JSON.parse(sceneText.value)); } catch (e) { alert('JSON 解析失败：' + ((e as Error).message)); } }
+async function applyScene() {
+  try { const scripts = JSON.parse(sceneText.value); engine.value?.setScripts(scripts); }
+  catch (e) { alert('JSON 解析失败：' + ((e as Error).message)); return; }
+  // 剧本回写：POST /api/save 写入开发机项目文件（数据轨）；脚本轨仍走 HMR
+  if (name.value) {
+    try { await fetch('/api/save?path=' + encodeURIComponent(name.value), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: 'demo.json', scene: JSON.parse(sceneText.value) }) }); }
+    catch (e) { console.warn('保存失败（回写开发机文件）：', e); }
+  }
+}
 watch(loaded, (v) => { if (v && v.project) launch(v.project, v.assetBase); });
 onMounted(() => {
   if (mainEl.value) { ro = new ResizeObserver(updateFrame); ro.observe(mainEl.value); updateFrame(); }
