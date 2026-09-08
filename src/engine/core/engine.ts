@@ -414,6 +414,15 @@ export class Engine {
   }
   setMode(mode) { this.mode = mode; }
   // 热重载：替换剧本（编辑器“应用”/dev-server 场景变化时调用）
+  // 跳转到当前场景的第 i 条指令（重新应用 0..i，供“点结点→预览实时跳转”）
+  seekSceneIndex(i: number) {
+    const top = this.state.stack[0]; if (!top) return;
+    const arr = top.arr; if (i < 0 || i >= arr.length) return;
+    this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 }; this.activeTasks = []; this.overlays = [];
+    this.lastSay = null; this.pendingChoice = null; this.cg = null; this.html = null; this.video = null; this.uiFx = {};
+    for (let j = 0; j <= i; j++) { top.index = j; const d = arr[j]; if (d) { this._spawn(d); } }
+    this.activeTasks = this.activeTasks.filter((t) => ['bg'].includes(t.kind)); // 保留背景加载，去掉阻塞交互任务
+  }
   setScripts(scripts: Story | Record<string, unknown>) {
     this.story = loadStory(scripts);
     this.restart();
