@@ -71,6 +71,8 @@ export interface SceneState {
   bg: BgState | null;
   cg: { src: string; opacity: number } | null;
   uiFx: { block: string; tags: string[] } | null;
+  html: string | null;
+  video: { src: string; skip: boolean } | null;
   sprites: SpriteState[];
   say: SayState | null;
   choices: ChoiceState | null;

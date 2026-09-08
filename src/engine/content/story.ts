@@ -19,6 +19,8 @@ class SceneBuilder {
   _dirs!: Directive[];
   constructor(dirs) { this._dirs = dirs; }
   bg(src, o = {}) { this._dirs.push(D('bg', { src, ...o })); return this; }
+  html(html, o = {}) { this._dirs.push(D('html', { html, ...o })); return this; }
+  video(src, o = {}) { this._dirs.push(D('video', { src, ...o })); return this; }
   cg(src, o = {}) { this._dirs.push(D('cg', { src, ...o })); return this; }
   char(id, o = {}) { this._dirs.push(D('char', { id, ...o })); return this; }
   say(who, text, o = {}) { this._dirs.push(D('say', { who, text, ...o })); return this; }

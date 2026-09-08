@@ -27,6 +27,8 @@ export const commands = {
       case 'effect': return this._taskEffect(d);
       case 'cg': this._applyCg(d); return null;
       case 'fx': this._applyFx(d); return null;
+      case 'html': this._applyHtml(d); return null;
+      case 'video': this._applyVideo(d); return null;
       default: return null;
     }
   }
@@ -262,6 +264,10 @@ export const commands = {
     this.cg = { src: (d.src as string) || '', opacity: 1 };
     this._cgFade = toMs(d.fade) || this.config.effect.transition.crossfade;
   }
+,
+  _applyHtml(this: Engine, d) { this.html = (d.html ?? d.content ?? '') as string; }
+,
+  _applyVideo(this: Engine, d) { this.video = { src: (d.src as string) || '', skip: !!d.skip }; }
 ,
   _applyFx(this: Engine, d) {
     this.uiFx = { block: (d.block as string) || 'stage', tags: (d.tags as string[]) || [], start: this.time, dur: toMs(d.dur) || 400 };
