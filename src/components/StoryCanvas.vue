@@ -32,6 +32,9 @@ async function renderGraph() {
     const { svg } = await mermaid.render('story-scene-graph', buildGraph());
     if (seq !== renderSeq) return;
     wrap.value.innerHTML = svg;
+    // 清理 mermaid 渲染后遗留的临时容器(如 #dstory-scene-graph)，否则撑破页面出现滚动条
+    const tmp = document.getElementById('dstory-scene-graph') || document.getElementById('story-scene-graph');
+    if (tmp && tmp.parentNode) tmp.remove();
     const svgEl = wrap.value.querySelector('svg');
     if (!svgEl) return;
     const bbox = svgEl.getBBox();

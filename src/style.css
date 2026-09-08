@@ -182,3 +182,6 @@ button:hover { border-color:var(--accent); color:#fff; }
 .ed-view-toggle { margin-left:auto; display:flex; gap:4px; }
 .ed-view-toggle button { font-size:12px; padding:3px 10px; }
 .ed-view-toggle button.on { border-color:var(--accent); color:#fff; }
+
+/* 视频叠加层：居中弹层(在背景之上、对话之前) */
+.ams-video { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:auto; max-width:min(56%, 720px); max-height:56%; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,.6); z-index:7; background:#000; }

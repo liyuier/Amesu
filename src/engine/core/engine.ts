@@ -421,7 +421,8 @@ export class Engine {
     this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 }; this.activeTasks = []; this.overlays = [];
     this.lastSay = null; this.pendingChoice = null; this.cg = null; this.html = null; this.video = null; this.uiFx = {};
     for (let j = 0; j <= i; j++) { top.index = j; const d = arr[j]; if (d) { this._spawn(d); } }
-    this.activeTasks = this.activeTasks.filter((t) => ['bg'].includes(t.kind)); // 保留背景加载，去掉阻塞交互任务
+    this.bg.mix = 1; // 背景立即完整显示（否则停在淡入 mix=0 → 黑）
+    this.activeTasks = this.activeTasks.filter((t) => t.kind === 'bg' && this._bgSrc); // 仅保留当前背景任务
   }
   setScripts(scripts: Story | Record<string, unknown>) {
     this.story = loadStory(scripts);
