@@ -109,6 +109,29 @@ function launch(project: Project, assetBase: string) {
   sceneText.value = JSON.stringify(project.scripts ?? {}, null, 2);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
 }
+async function applyNode() {
+  const i = selNode.value; if (i == null) return 'no-sel';
+  try {
+    const v = JSON.parse(propText.value); const d = [...sceneDirs.value]; d[i] = v;
+    const scene = (state.value as any)?.scene;
+    handleSceneSave(d);
+    // 回写开发机文件：整篇故事
+    const whole = (engine.value as any)?.story ?? loaded.value?.project?.scripts;
+    let saveStatus = '';
+    if (name.value && whole) { try { const r = await fetch('/api/save?path=' + encodeURIComponent(name.value), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: 'demo.json', scene: whole }) }); saveStatus = ' save=' + r.status; } catch (e) { saveStatus = ' saveERR:' + String(e); } }
+    const after = (engine.value as any)?.story?.scenes?.[scene]?.[1]?.text;
+    return 'ok' + saveStatus + ': after1=' + after;
+  } catch (e) { return 'FAIL:' + String(e); }
+}
+
+
+function handleSceneSave(dirs: { type: string; [k: string]: unknown }[]) {
+  const scripts = engine.value ? (engine.value as any).story : null; const scene = state.value?.scene as string;
+  if (scripts?.scenes && scene) { (scripts.scenes as any)[scene] = dirs; engine.value?.setScripts(scripts); }
+  const ps = loaded.value?.project?.scripts as { scenes?: Record<string, { type: string; [k: string]: unknown }[]> } | undefined;
+  if (ps?.scenes && scene) ps.scenes[scene] = dirs;
+}
+
 async function applyScene() {
   try { const scripts = JSON.parse(sceneText.value); engine.value?.setScripts(scripts); }
   catch (e) { alert('JSON 解析失败：' + ((e as Error).message)); return; }
