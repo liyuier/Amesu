@@ -65,6 +65,9 @@ button:hover { border-color:var(--accent); color:#fff; }
 @keyframes amsSpeak { 0%,100%{ bottom:6% } 25%{ bottom:9.5% } 50%{ bottom:6% } 75%{ bottom:8.5% } }
 .ams-sprite.speaking { animation: amsSpeak .5s ease-out; } /* 说话时抖动一下（两次小颠簸后停，非持续循环） */
 .ams-fx { position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
+.ams-loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:3; color:rgba(255,255,255,.85); font-size:18px; background:rgba(18,18,24,.5); }
+.ams-loading-dot { animation: amsPulse .8s ease-in-out infinite; margin-right:8px; }
+@keyframes amsPulse { 0%,100%{opacity:.3} 50%{opacity:1} }
 .ams-cg { position:absolute; inset:0; background-size:cover; background-position:center; z-index:2; pointer-events:none; }
 .ams-html { position:absolute; inset:0; z-index:4; pointer-events:auto; overflow:auto; }
 .ams-video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:4; background:#000; }

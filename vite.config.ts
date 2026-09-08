@@ -35,6 +35,8 @@ function projectApi(): Plugin {
   return {
     name: 'amesu-server-api',
     configureServer(server) {
+      // 脚本轨 HMR：监听开发机项目（父目录 workspace 下）→ /__reload 广播（仅 dev，不阻塞 build）
+      try { const watchRoot = path.join(path.resolve(here, '..'), 'workspace'); fs.watch(watchRoot, { recursive: true }, (_e, f) => { if (f && /\.(ts|tsx|json)$/.test(f) && !/\.git/.test(f)) broadcast('reload'); }); } catch (e) { /* */ }
       server.middlewares.use(async (req, res, next) => {
         const u = new URL(req.url || '/', 'http://x');
         const p = u.pathname, q = u.searchParams;
@@ -115,14 +117,6 @@ function projectApi(): Plugin {
     },
   };
 }
-
-// 监听开发机项目（父目录 workspace 下）→ /__reload 广播（脚本轨 HMR）
-try {
-  const watchRoot = path.join(path.resolve(here, '..'), 'workspace');
-  fs.watch(watchRoot, { recursive: true }, (_e, f) => {
-    if (f && /\.(ts|tsx|json)$/.test(f) && !/\.git/.test(f)) { broadcast('reload'); }
-  });
-} catch (e) { /* */ }
 
 export default defineConfig({
   root: here,

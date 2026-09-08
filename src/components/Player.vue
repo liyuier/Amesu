@@ -38,6 +38,8 @@ const textChars = computed(() => Array.from(props.state.say?.text || ''));
 const charStyle = (i: number) => ({ opacity: i < (props.state.say?.reveal ?? 0) ? 1 : 0, transition: 'opacity .2s ease' });
 // 通用特效表：对具名 UI 块应用主题 effect.tags 的滤镜（如 stage/dialogue/name/hud）
 const blockFx = (name: string) => { const u = props.state.uiFx; if (!u || u.block !== name) return {}; const f = u.tags.map((t) => props.theme?.effect.tags[t]).filter(Boolean).join(' '); return f ? { filter: f } : {}; };
+// 素材加载态：尚无背景(且无上一帧)时显示“加载中”，避免闪黑
+const sceneLoading = computed(() => !props.state.bg?.cur && !props.state.bg?.prev);
 const rain = computed(() => {
   const fx = props.state.effects.find((e) => e.type.includes('rain'));
   if (!fx) return [] as { x: number; delay: number; dur: number; len: number }[];
@@ -60,6 +62,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
       <img v-for="sp in state.sprites" v-show="sp.ready && sp.src" :key="sp.id" class="ams-sprite" :class="{ speaking: sp.speaking }"
            :src="sp.src" :data-id="sp.id" :style="spriteStyle(sp)" draggable="false" />
     </div>
+    <div v-if="sceneLoading" class="ams-loading"><span class="ams-loading-dot">●</span> 加载中…</div>
     <div v-if="state.cg" class="ams-cg" :style="cgStyle"></div>
     <div v-if="state.html" class="ams-html" v-html="state.html"></div>
     <video v-if="state.video && state.video.src" class="ams-video" :src="state.video.src" autoplay controls></video>
