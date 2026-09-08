@@ -7,7 +7,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
 type D = { type: string; [k: string]: unknown };
-const props = defineProps<{ sceneDirs: D[]; sceneName: string }>();
+const props = defineProps<{ sceneDirs: D[]; sceneName: string; currentIndex?: number }>();
 const emit = defineEmits<{ save: [dirs: D[]] }>();
 
 const snippet = (d: D) => (['text', 'src', 'id', 'who', 'name'].find((x) => typeof d[x] === 'string') ?? '');
@@ -18,14 +18,16 @@ const edges = ref<Edge[]>([]);
 const selected = ref<number | null>(null);
 
 function sync() {
-  nodes.value = props.sceneDirs.map((d, i) => ({ id: 'n' + i, position: { x: 80, y: 30 + i * 100 }, data: { i }, label: label(d) }));
+  // 横向排布（从左到右），当前步高亮
+  nodes.value = props.sceneDirs.map((d, i) => ({ id: 'n' + i, position: { x: 40 + i * 175, y: 40 }, data: { i }, label: label(d), style: i === props.currentIndex ? { outline: '2px solid var(--accent)', outlineOffset: '2px', borderRadius: '8px' } : undefined }));
   edges.value = props.sceneDirs.slice(0, -1).map((_, i) => ({ id: 'e' + i, source: 'n' + i, target: 'n' + (i + 1), animated: true }));
 }
+watch(() => props.currentIndex, sync);
 watch(() => props.sceneDirs, sync, { immediate: true });
 
 function onNodeClick({ node }: { node: Node }) { selected.value = Number(String(node.id).slice(1)); }
 function onDragStop() {
-  const order = [...nodes.value].sort((a, b) => a.position.y - b.position.y).map((n) => Number(String(n.id).slice(1)));
+  const order = [...nodes.value].sort((a, b) => a.position.x - b.position.x).map((n) => Number(String(n.id).slice(1)));
   emit('save', order.map((i) => props.sceneDirs[i])); sync();
 }
 function onConnect(c: { source: string | undefined; target: string | undefined }) { edges.value.push({ id: 'e' + Date.now(), source: c.source!, target: c.target!, animated: true }); }

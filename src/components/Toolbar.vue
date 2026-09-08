@@ -2,11 +2,10 @@
 // 控制栏（编辑器工具）：播放/暂停、重播、速度、模式、静音。Vue 组件。
 import { ref } from 'vue';
 import type { Engine } from '@engine';
-const props = defineProps<{ engine: Engine | null; paused?: boolean }>();
+const props = defineProps<{ engine: Engine | null; paused?: boolean; muted?: boolean }>();
 const emit = defineEmits<{ mode: [m: 'interactive' | 'deterministic'] }>();
 const speed = ref(0.5);
 const mode = ref<'interactive' | 'deterministic'>('interactive');
-const muted = ref(false);
 
 const togglePlay = () => { const e = props.engine; if (!e) return; e.paused ? e.play() : e.pause(); };
 const restart = () => props.engine?.restart();
@@ -16,7 +15,7 @@ const toggleMode = () => {
   props.engine?.setMode(mode.value);
   emit('mode', mode.value);
 };
-const toggleMute = () => { const e = props.engine; if (!e) return; e.audio.ensure(); muted.value = e.toggleMute(); };
+const toggleMute = () => { const e = props.engine; if (!e) return; e.audio.ensure(); e.toggleMute(); };
 </script>
 
 <template>
@@ -25,6 +24,6 @@ const toggleMute = () => { const e = props.engine; if (!e) return; e.audio.ensur
     <button @click="restart">↻ 重播</button>
     <button @click="bumpSpeed">x{{ speed }}</button>
     <button @click="toggleMode">{{ mode === 'interactive' ? '交互' : '确定性' }}</button>
-    <button @click="toggleMute">{{ muted ? '🔇 静音' : '🔊 声音' }}</button>
+    <button @click="toggleMute">{{ props.muted ? '🔇 静音' : '🔊 声音' }}</button>
   </div>
 </template>

@@ -367,8 +367,11 @@ export class Engine {
       }
       return false;
     }
-    // 快进所有【角色移动/淡入淡出】（单击即结束进行中动效，同“点一下打全句子”）
-    for (const c of this.chars.values()) { if (c.xFracTo !== undefined) c.xFrac = c.xFracTo; if (c.opacityTo !== undefined) c.opacity = c.opacityTo; }
+    // 快进所有【角色移动/淡入淡出】（单击即结束进行中动效，同“点一下打全句子”）；并同步 from/start 防回弹闪烁
+    for (const c of this.chars.values()) {
+      if (c.xFracTo !== undefined) { c.xFrac = c.xFracTo; c.xFracFrom = c.xFracTo; c.xFracStart = this.time; }
+      if (c.opacityTo !== undefined) { c.opacity = c.opacityTo; c.opacityFrom = c.opacityTo; c.opacityStart = this.time; }
+    }
     // 跳过进行中的特效（交互模式下单击=结束特效）
     const efTask = this.activeTasks.find((t) => t.kind === 'effect');
     if (efTask) {

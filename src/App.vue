@@ -20,7 +20,7 @@ const state = ref<SceneState | null>(null);
 const inspect = ref('');
 const sceneText = ref('');
 const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
-const view = ref<'timeline'|'canvas'>('timeline');
+const sideTab = ref<'script'|'assets'|'inspect'>('assets');
 // 时间轴：当前场景的指令序列，高亮当前步
 import { computed } from 'vue';
 const sceneDirs = computed<{ type: string; who?: string }[]>(() => {
@@ -46,13 +46,13 @@ let ro: ResizeObserver | null = null;
 
 function startVDrag(e: MouseEvent) {
   const sx = e.clientX, sw = sideWidth.value;
-  const move = (ev: MouseEvent) => { sideWidth.value = clamp(sw + ev.clientX - sx, 160, 640); };
+  const move = (ev: MouseEvent) => { sideWidth.value = clamp(sw + ev.clientX - sx, 110, 980); };
   const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
   window.addEventListener('mousemove', move); window.addEventListener('mouseup', up); e.preventDefault();
 }
 function startHDrag(e: MouseEvent) {
   const sy = e.clientY, sh = bottomHeight.value;
-  const move = (ev: MouseEvent) => { bottomHeight.value = clamp(sh + (sy - ev.clientY), 90, 420); };
+  const move = (ev: MouseEvent) => { bottomHeight.value = clamp(sh + (sy - ev.clientY), 50, 760); };
   const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
   window.addEventListener('mousemove', move); window.addEventListener('mouseup', up); e.preventDefault();
 }
@@ -110,13 +110,29 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
 
     <div class="ed-mid">
       <aside class="ed-side" :style="{ width: sideWidth + 'px' }">
-        <template v-if="engine">
-          <Toolbar :engine="engine" :paused="state?.paused ?? false" />
-          <label class="ed-label">剧本（JSON，改后点“应用”）</label>
-          <textarea v-model="sceneText" class="ed-scene" spellcheck="false" />
-          <button class="ed-apply" @click="applyScene">✔ 应用到预览</button>
-        </template>
-        <Inspector :inspect="inspect" />
+        <div class="ed-activity">
+          <button class="ed-activity-btn" :class="{on: sideTab==='script'}" title="剧本" @click="sideTab='script'">📜</button>
+          <button class="ed-activity-btn" :class="{on: sideTab==='assets'}" title="素材" @click="sideTab='assets'">🎨</button>
+          <button class="ed-activity-btn" :class="{on: sideTab==='inspect'}" title="检查器" @click="sideTab='inspect'">🔍</button>
+        </div>
+        <div class="ed-tool">
+          <template v-if="engine">
+            <Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" />
+            <template v-if="sideTab==='script'">
+              <label class="ed-label">剧本（JSON，改后点“应用”；画布改动实时同步）</label>
+              <textarea v-model="sceneText" class="ed-scene" spellcheck="false" />
+              <button class="ed-apply" @click="applyScene">✔ 应用到预览</button>
+            </template>
+            <template v-else-if="sideTab==='assets'">
+              <div class="ed-assets"><span class="ed-assets-title">素材：</span>
+                <span v-for="a in assets" :key="a.rel" class="ed-asset" :title="a.rel"><img v-if="['png','jpg','jpeg','webp','gif'].includes(a.kind)" :src="a.url" class="ed-asset-thumb" />{{ a.rel }}</span>
+              </div>
+            </template>
+            <template v-else-if="sideTab==='inspect'">
+              <Inspector :inspect="inspect" />
+            </template>
+          </template>
+        </div>
       </aside>
       <div class="ed-split-v" @mousedown="startVDrag"></div>
 
@@ -133,28 +149,9 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
         </main>
         <div class="ed-split-h" @mousedown="startHDrag"></div>
         <section class="ed-bottom" :style="{ height: bottomHeight + 'px' }">
-          <div class="ed-bottom-title">素材（资源） + 时间轴 / 演出
-            <span class="ed-view-toggle">
-              <button :class="{ on: view==='timeline' }" @click="view='timeline'">时间轴</button>
-              <button :class="{ on: view==='canvas' }" @click="view='canvas'">画布</button>
-            </span>
-          </div>
-          <div class="ed-bottom-body" :style="view==='canvas' ? { display:'grid', gridTemplateRows:'auto 1fr', height:'100%' } : {}">
-            <div class="ed-assets">
-              <span class="ed-assets-title">素材：</span>
-              <span v-for="a in assets" :key="a.rel" class="ed-asset" :title="a.rel">
-                <img v-if="['png','jpg','jpeg','webp','gif'].includes(a.kind)" :src="a.url" class="ed-asset-thumb" />
-                {{ a.rel }}
-              </span>
-            </div>
-            <StoryCanvas v-if="view==='canvas'" :scene-dirs="sceneDirs" :scene-name="state?.scene || ''" @save="handleSceneSave" />
-            <div v-if="view==='timeline'" class="ed-timeline">
-              <div v-for="(d, i) in sceneDirs" :key="i" class="ed-step" :class="{ cur: i === state?.index }">
-                <span class="ed-step-no">{{ i }}</span>
-                <span class="ed-step-type">{{ d.type }}</span>
-                <span class="ed-step-who" v-if="d.who">{{ d.who }}</span>
-              </div>
-            </div>
+          <div class="ed-bottom-title">画布 · 当前场景（拖拽改序 / 点结点编辑 / 连线分支；橙色=当前步）</div>
+          <div class="ed-bottom-body">
+            <StoryCanvas v-if="state" :scene-dirs="sceneDirs" :scene-name="state?.scene || ''" :current-index="state?.index" @save="handleSceneSave" />
           </div>
         </section>
       </div>

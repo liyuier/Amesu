@@ -46,6 +46,12 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans
 .ed-side::-webkit-scrollbar-track { background:transparent; }
 .ed-label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
 .ed-scene { width:100%; height:180px; font:12px/1.5 monospace; background:#12141a; color:#cfd6e4; border:1px solid var(--line); border-radius:6px; white-space:pre; padding:8px; }
+.ed-side { display:flex; }
+.ed-activity { display:flex; flex-direction:column; gap:4px; border-right:1px solid var(--line); padding:8px 4px; flex:0 0 auto; }
+.ed-activity-btn { background:transparent; border:1px solid transparent; border-radius:6px; padding:6px 8px; font-size:16px; cursor:pointer; line-height:1; }
+.ed-activity-btn:hover { border-color:var(--accent); }
+.ed-activity-btn.on { background:rgba(224,138,90,.20); }
+.ed-tool { flex:1; padding:0 10px; overflow:auto; min-width:0; }
 .ed-apply { margin-top:8px; }
 
 /* 中央预览：占满剩余（master），居中 */
@@ -121,7 +127,9 @@ button:hover { border-color:var(--accent); color:#fff; }
 .sc-root { display:flex; flex-direction:column; gap:8px; height:100%; }
 .sc-bar { display:flex; align-items:center; gap:10px; }
 .sc-hint { font-size:12px; color:var(--muted); }
-.sc-flow { flex:1; min-height:120px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#14151b; }
+
+.vue-flow__node.cur { outline:2px solid var(--accent); border-radius:8px; }
+.sc-flow { flex:1; min-height:140px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#14151b; }
 .sc-prop { position:absolute; right:8px; bottom:10px; width:280px; background:var(--side); border:1px solid var(--line); border-radius:8px; padding:8px; z-index:20; }
 .sc-prop-title { font-size:12px; color:var(--accent2); }
 .sc-json { width:100%; height:120px; font:11px/1.4 monospace; background:#0f1014; color:#cfd6e4; border:1px solid var(--line); border-radius:6px; padding:6px; margin-bottom:6px; white-space:pre; }
