@@ -66,6 +66,8 @@ export class Engine {
   _bgPrevSrc = ""; // 上一次背景的 src（供 DOM 交叉淡出）
   _bgPos = 'center'; // 背景定位/平移
   _lastSpeaker = '';
+  episode = 0;  // 每场次递增：重播时 +1，供呈现层强制重置场景
+  _saySeq = 0;
   audio!: AudioManager;
   ctx!: CanvasRenderingContext2D;
   canvas!: HTMLCanvasElement;
@@ -232,7 +234,7 @@ export class Engine {
   }
 
   _reset() {
-    this.time = 0; this.speed = 1; this.paused = false; this.ended = false;
+    this.episode++; this.time = 0; this.speed = 1; this.paused = false; this.ended = false;
     this.activeTasks = []; this.overlays = [];
     this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 };
     this.camera = { x: 0, y: 0, zoom: 1 }; this.lastSay = null; this.pendingChoice = null;
@@ -462,7 +464,8 @@ export class Engine {
         prev: this.bg.prev ? { src: this._resolve(this._bgPrevSrc || ''), opacity: 1 - this.bg.mix, pos: this._bgPos } : null,
       } : null,
       sprites,
-      say: this.lastSay ? { who: this.lastSay.who, text: this.lastSay.text, reveal: this.lastSay.reveal } : null,
+      episode: this.episode,
+      say: this.lastSay ? { who: this.lastSay.who, text: this.lastSay.text, reveal: this.lastSay.reveal, id: this.lastSay.id } : null,
       choices: this.pendingChoice ? { chosen: this.pendingChoice.chosen, options: this.pendingChoice.options } : null,
       effects: this.overlays.map((o, idx) => ({ key: String(idx), type: (o.effectName ? o.type + ':' + o.effectName : o.type), start: o.start, duration: o.duration, params: {} })),
       vars: this.state.vars,

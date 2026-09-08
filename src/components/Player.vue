@@ -53,7 +53,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
 </script>
 
 <template>
-  <div class="ams-stage" :style="blockFx('stage')" @click="emit('advance')">
+  <div class="ams-stage" :key="state.episode" :style="blockFx('stage')" @click="emit('advance')">
     <div v-if="state.bg?.prev" class="ams-bg" :style="bgStyle(state.bg.prev)"></div>
     <div v-if="state.bg?.cur" class="ams-bg" :style="bgStyle(state.bg.cur)"></div>
     <div class="ams-sprites">
@@ -66,7 +66,7 @@ const hud = computed(() => `scene:${props.state.scene ?? '-'} t:${props.state.ti
     <div class="ams-fx"><span v-for="(d, i) in rain" :key="i" class="ams-drop" :style="dropStyle(d)"></span></div>
     <div class="ams-dialogue" :style="{ ...dialogueStyle, ...blockFx('dialogue') }">
       <div v-if="state.say && state.say.who" class="ams-name">{{ state.say.who }}</div>
-      <div class="ams-text"><span v-for="(c, i) in textChars" :key="i" :style="charStyle(i)">{{ c }}</span></div>
+      <div class="ams-text" :key="state.say?.id"><span v-for="(c, i) in textChars" :key="i" :style="charStyle(i)">{{ c }}</span></div>
     </div>
     <div v-if="state.choices && state.choices.chosen == null" class="ams-choice-wrap">
       <button v-for="(o, i) in state.choices.options" :key="i" class="ams-choice" :data-index="i"

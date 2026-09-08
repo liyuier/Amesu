@@ -80,8 +80,9 @@ export const commands = {
     const typewriter = toMs(d.typewriter);
     const start = this.time;
     const totalMs = text.length * typewriter;
+    this._saySeq++;
     const obj = {
-      who: d.who || '', text, typewriter, start,
+      id: this._saySeq, who: d.who || '', text, typewriter, start,
       reveal: 0, typingDone: false, advance: false,
     };
     this.lastSay = obj;

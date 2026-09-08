@@ -60,7 +60,7 @@ export interface SpriteState {
   id: string; expr: string; pos: number; z: number;
   opacity: number; flip: boolean; color: string; ready: boolean; src: string; speaking?: boolean; fx?: string[];
 }
-export interface SayState { who: string; text: string; reveal: number; }
+export interface SayState { who: string; text: string; reveal: number; id?: number; }
 export interface ChoiceOption { text: string; jump?: string; set?: Record<string, unknown>; }
 export interface ChoiceState { chosen: number | null; options: ChoiceOption[]; }
 export interface EffectState {
@@ -77,6 +77,7 @@ export interface SceneState {
   say: SayState | null;
   choices: ChoiceState | null;
   effects: EffectState[];
+  episode: number;
   vars: Record<string, unknown>;
   time: number; scene: string | null; ended: boolean;
   mode: 'interactive' | 'deterministic'; speed: number; paused: boolean;
@@ -95,7 +96,7 @@ export interface Task {
 export type Drawable = HTMLImageElement | HTMLCanvasElement;
 export interface BgRuntime { cur: Drawable | null; prev: Drawable | null; mix: number; }
 export interface SpriteRuntime { id: string; expr: string; color: string; sprite: Drawable | null; xFrac: number; xFracTo?: number; z: number; opacity: number; scaleX: number; opacityT?: number; opacityFrom?: number; opacityTo?: number; leaving?: boolean; fx?: string[]; suffix?: string; }
-export interface SayRuntime { who: string; text: string; typewriter: number; start: number; reveal: number; typingDone: boolean; advance: boolean; }
+export interface SayRuntime { id: number; who: string; text: string; typewriter: number; start: number; reveal: number; typingDone: boolean; advance: boolean; }
 export interface ChoiceRuntime { chosen: number | null; options: ChoiceOption[]; boxes: { x: number; y: number; w: number; h: number }[]; }
 export interface FadeRuntime { color: string; a: number; }
 export interface CameraRuntime { x: number; y: number; zoom: number; }
