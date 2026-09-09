@@ -3,6 +3,9 @@
 // 交付物 = 开发机上选定的项目目录（服务端 API 列出/读取）。
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import Lightbox from 'vue-easy-lightbox';
+import { Codemirror } from 'vue-codemirror';
+import { json } from '@codemirror/lang-json';
+import { oneDark } from '@codemirror/theme-one-dark';
 import { createEngine, type Engine, type SceneState, type Project, type AmesuConfig } from '@engine';
 import Player from './components/Player.vue';
 import Toolbar from './components/Toolbar.vue';
@@ -216,7 +219,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
           <div v-if="selNode != null" class="ed-main-right" :style="{ width: scW + 'px' }">
             <div class="sc-prop">
               <div class="sc-prop-head"><span class="sc-prop-title">结点 #{{ selNode }}（{{ sceneDirs[selNode]?.type }}）</span><button class="sc-apply" @click="applyNode">✔ 应用</button></div>
-              <textarea v-model="propText" class="sc-json" spellcheck="false" />
+              <div class="sc-json-box"><Codemirror v-model="propText" :extensions="[json(), oneDark]" :style="{ height: '100%', fontSize: '12px' }" indent-with-tab /></div>
             </div>
           </div>
         </main>

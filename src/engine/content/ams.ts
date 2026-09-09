@@ -54,6 +54,7 @@ export function parseAms(md: string): Story {
   for (; i < n; i++) {
     const t = lines[i].trim();
     if (!t) continue;
+    if (t.startsWith('<!--')) { while (i < n && !lines[i].includes('-->')) i++; continue; } // 兼容 markdown 注释
     if (t.startsWith('## ')) { const name = t.slice(3).trim(); cur = scenes[name] = []; sceneCnt++; continue; }
     if (t.startsWith('```')) {
       const b = blockAt(i); if (!b) continue;
