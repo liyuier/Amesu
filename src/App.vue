@@ -29,8 +29,10 @@ const inspect = ref('');
 const sceneText = ref('');
 const assets = ref<{ rel: string; url: string; kind: string }[]>([]);
 const selNode = ref<number | null>(null);
+const selScene = ref('');
 const propText = ref('');
-watch(selNode, (i) => { propText.value = i != null ? JSON.stringify(sceneDirs.value[i] ?? {}, null, 2) : ''; });
+const selSceneDirs = computed(() => { const ps = loaded.value?.project?.scripts as any; const sc = selScene.value || (state.value as any)?.scene || ''; return ps?.scenes?.[sc] ?? []; });
+watch(selNode, (i) => { propText.value = i != null ? JSON.stringify((selSceneDirs.value as any)[i] ?? {}, null, 2) : ''; });
 const toolHidden = ref(false);
 const scW = ref(360);
 let pvDrag: { x: number; w: number } | null = null;
@@ -227,7 +229,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
         <section class="ed-bottom" :style="{ height: bottomHeight + 'px' }">
           <div class="ed-bottom-title">画布 · 当前场景（拖拽改序 / 点结点编辑 / 连线分支；橙色=当前步）</div>
           <div class="ed-bottom-body">
-            <StoryCanvas v-if="state" :story="(loaded?.project?.scripts as any) ?? null" :scene-dirs="sceneDirs" :scene-name="state?.scene || ''" :current-scene="state?.scene || ''" :current-index="state?.index" :scene-idx="(state as any)?.index" :current-say="(state as any)?.say" :current-type="(state as any)?.curType" :selected="selNode" @save="handleSceneSave" @select="(i: number) => { selNode = i; engine?.seekSceneIndex(i); }" />
+            <StoryCanvas v-if="state" :story="(loaded?.project?.scripts as any) ?? null" :scene-dirs="sceneDirs" :scene-name="state?.scene || ''" :current-scene="state?.scene || ''" :current-index="state?.index" :scene-idx="(state as any)?.index" :current-say="(state as any)?.say" :current-type="(state as any)?.curType" :selected="selNode" @save="handleSceneSave" @select="(scene: string, i: number) => { selNode = i; selScene = scene; engine?.seekSceneIndex(scene, i); }" />
           </div>
         </section>
       </div>

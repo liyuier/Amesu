@@ -57,17 +57,21 @@ async function renderGraph() {
 function bindNodes() {
   if (!wrap.value) return;
   // 当前步=正在显示的那条对白(匹配 who+text)所在结点；否则回退到 currentIndex
-  // 首选：正在显示的那条对白(匹配 who+text)所在结点 —— 始终与预览一致
-  let hi = '';
-  const say = props.currentSay; const arr = (props.story?.scenes?.[props.currentScene || ''] || []) as D[];
-  if (say) { const idx = arr.findIndex((x) => x.type === 'say' && String((x as any).who || '') === String((say as any).who || '') && String((x as any).text || '') === String((say as any).text || '')); if (idx >= 0) hi = String(idx); }
-  // 回退：阻断型用 index, 跳跃型用 index-1
-  if (!hi) { const idxNum = Number(props.currentIndex ?? 0); const block = ['say', 'bg', 'choice', 'wait'].includes(props.currentType as string); hi = String(block ? idxNum : Math.max(0, idxNum - 1)); }
+  const idxNum = Number(props.currentIndex ?? 0);
+  const curType = props.currentType; const say = props.currentSay;
+  const arr = (props.story?.scenes?.[props.currentScene || ''] || []) as D[];
+  let hi: string;
+  if (curType === 'say' && say) { // 当前是对白 -> 高亮该对白句(与预览一致)
+    const idx = arr.findIndex((x) => x.type === 'say' && String((x as any).who || '') === String((say as any).who || '') && String((x as any).text || '') === String((say as any).text || '')); hi = idx >= 0 ? String(idx) : String(idxNum);
+  } else { // 非对白 -> 阻断型(video/cg/choice/bg/wait)用当前, 跳跃型(char/shot)用上一个可见
+    const block = ['say', 'bg', 'choice', 'wait', 'video', 'cg'].includes(curType as string);
+    hi = String(block ? idxNum : Math.max(0, idxNum - 1));
+  }
   const cur = `${props.currentScene}_${hi}`;
   wrap.value.querySelectorAll<SVGGElement>('.node').forEach((n, i) => {
     n.style.cursor = 'pointer';
     const id = (n.getAttribute('id') || '') + ' ' + (n.getAttribute('data-id') || '');
-    n.onclick = (ev) => { ev.stopPropagation(); emit('select', i); };
+    n.onclick = (ev) => { ev.stopPropagation(); const m = (n.getAttribute('id') || '').match(/-([A-Za-z0-9_]+)_(\d+)-/); emit('select', m ? m[1] : (props.currentScene || ''), m ? Number(m[2]) : i); };
     const r = n.querySelector('rect');
     if (cur && (id.includes('-' + cur + '-') || id === cur)) { // 边界匹配, 避免 scene_dusk_2 误中 scene_dusk_20
       if (r) r.style.fill = '#e08a5a'; const tx = n.querySelector('text'); if (tx) tx.style.fill = '#fff';

@@ -418,15 +418,19 @@ export class Engine {
   setMode(mode) { this.mode = mode; }
   // 热重载：替换剧本（编辑器“应用”/dev-server 场景变化时调用）
   // 跳转到当前场景的第 i 条指令（重新应用 0..i，供“点结点→预览实时跳转”）
-  seekSceneIndex(i: number) {
-    const top = this.state.stack[0]; if (!top) return;
-    const arr = top.arr; if (i < 0 || i >= arr.length) return;
+  seekSceneIndex(scene: string, i: number) {
+    const arr = this.story.scenes?.[scene]; if (!arr) return;
+    this.state.stack = [{ arr, index: 0 }]; // 重置到目标场景(弹掉分支), 从该场景的起点重放
+    if (i < 0 || i >= arr.length) return;
     this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 }; this.activeTasks = []; this.overlays = [];
     this.lastSay = null; this.pendingChoice = null; this.cg = null; this.html = null; this.video = null; this.uiFx = {};
+    const top = this.state.stack[this.state.stack.length - 1];
     for (let j = 0; j <= i; j++) { top.index = j; const d = arr[j]; if (d) { this._spawn(d); } }
     this.bg.mix = 1; // 背景立即完整显示（否则停在淡入 mix=0 → 黑）
     this.video = this.video && this.video.mode === 'bg' ? this.video : null; // 保留背景循环视频；跳到/越过 CG 视频步时清除(一次性事件)
-    this.activeTasks = this.activeTasks.filter((t) => t.kind === 'bg' && this._bgSrc);
+    if (this.video) this.video.done = false; if (this.pendingChoice) this.pendingChoice.chosen = null;
+    this.activeTasks = []; // 不留阻塞任务，防止引擎 _update 再推进导致 index 回退
+    this.paused = true; // 跳到目标结点后暂停预览，先展示该步状态；点击画面恢复+推进
   }
   setScripts(scripts: Story | Record<string, unknown>) {
     this.story = loadStory(scripts);
