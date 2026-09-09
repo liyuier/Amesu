@@ -11,7 +11,6 @@ import DirectoryPicker from './components/DirectoryPicker.vue';
 import StoryCanvas from './components/StoryCanvas.vue';
 import FsTree from './components/FsTree.vue';
 import { Image as ImageIcon, FolderOpen, Search } from 'lucide-vue-next';
-import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
 
 import { useProject } from './composables/useProject.ts';
@@ -33,13 +32,11 @@ const toolHidden = ref(false);
 const scW = ref(360);
 let pvDrag: { x: number; w: number } | null = null;
 function startPVDrag(e: MouseEvent) { pvDrag = { x: e.clientX, w: scW.value }; const mv = (ev: MouseEvent) => { if (pvDrag) scW.value = pvDrag.w - (ev.clientX - pvDrag.x); }; const up = () => { pvDrag = null; window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); }; window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); }
-const vidEl = ref<HTMLElement | null>(null); let vidPlayer: any = null;
 const sideTab = ref<'assets'|'fs'|'inspect'|null>('assets');
 function toggleAct(t: 'assets'|'fs'|'inspect') { if (sideTab.value === t) { toolHidden.value = !toolHidden.value; } else { sideTab.value = t; toolHidden.value = false; } }
 const lbVisible = ref(false); const lbSrc = ref(''); const vidVisible = ref(false); const vidSrc = ref('');
 function openLb(url: string) { lbSrc.value = url; lbVisible.value = true; }
 function openVid(url: string) { vidSrc.value = url; vidVisible.value = true; }
-watch(vidVisible, (v) => { if (v && vidEl.value) { try { vidPlayer = videojs(vidEl.value, { controls: true, autoplay: true, sources: [{ src: vidSrc.value, type: 'video/mp4' }] }); } catch (e) { console.warn('video.js', e); } } else { try { vidPlayer?.dispose?.(); } catch (e) { /* */ } vidPlayer = null; } }, { flush: 'post' });
 // 素材按媒体类型分组
 const assetGroups = computed(() => ([
   { label: '图片', items: assets.value.filter((a) => ['png','jpg','jpeg','webp','gif'].includes(a.kind)) },
@@ -234,7 +231,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
     </div>
 
         <Lightbox :visible="lbVisible" :imgs="[lbSrc]" @hide="lbVisible=false" />
-    <div v-if="vidVisible" class="vid-modal"><div class="vid-modal-box"><video :src="vidSrc" controls autoplay class="vid-modal-video" /><button class="vid-close" @click="vidVisible=false">✕ 关闭</button></div></div>
+    <div v-if="vidVisible" class="vid-modal" @click.self="vidVisible=false"><div class="vid-modal-box"><video :src="vidSrc" controls autoplay playsinline class="vid-modal-video" /><button class="vid-close" @click="vidVisible=false">✕ 关闭</button></div></div>
 
     <footer class="ed-statusbar">
       <span v-if="engine">项目:{{ name }} · scene:{{ state?.scene ?? '-' }} · t:{{ state?.time }}ms · {{ state?.mode }} x{{ state?.speed }}{{ state?.ended ? ' · 结束' : '' }}</span>

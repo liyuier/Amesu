@@ -193,3 +193,8 @@ button:hover { border-color:var(--accent); color:#fff; }
 /* CG 视频：全屏封面，替代/遮盖界面，播放完自动退出 */
 .ams-video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000; z-index:7; cursor:pointer; }
 .ams-video.bg { object-fit:cover; z-index:0; } /* 背景视频：铺满作背景层 */
+
+/* 视频预览：居中弹窗 + 原生播放器 */
+.vid-modal { position:fixed; inset:0; z-index:130; background:rgba(0,0,0,.86); display:flex; align-items:center; justify-content:center; }
+.vid-modal-box { position:relative; max-width:86vw; max-height:86vh; }
+.vid-modal-video { display:block; max-width:86vw; max-height:86vh; border-radius:6px; box-shadow:0 10px 40px rgba(0,0,0,.7); }
