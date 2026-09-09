@@ -57,7 +57,9 @@ export class Engine {
   _bgmVol = 0.6;
   _bgmForResume: string | null = null;
   _currentNode: { scene: string; index: number; type: string } | null = null;
-  _snapshots: Record<string, any> = {};
+  _stateTable: Record<string, any> = {}; // 演算状态快照表(scene_i): 供回溯/跳转
+  _backlog: { key: string }[] = []; // 已访问结点栈(回溯用)
+
   bg!: BgRuntime;
   camera!: CameraRuntime;
   lastSay!: SayRuntime | null;
@@ -423,11 +425,13 @@ export class Engine {
   setMode(mode) { this.mode = mode; }
   // 热重载：替换剧本（编辑器“应用”/dev-server 场景变化时调用）
   // 跳转到当前场景的第 i 条指令（重新应用 0..i，供“点结点→预览实时跳转”）
-  // 每结点快照：命中缓存→恢复快照；否则回放并缓存；恢复时时间属性(BGM/循环背景视频)从头播
+  // 状态表式 seek：命中→loadState(重放+commit)；未命中→replay(重放语句)+saveState(存演算状态)+loadState；入回溯栈
   seekSceneIndex(scene: string, i: number) {
     const arr = this.story.scenes?.[scene]; if (!arr) return;
-    const key = scene + '_' + i;
-    if (this._snapshots[key]) { this._restoreSnapshot(this._snapshots[key]); return; }
+    const key = this._snapshotKey(scene, i);
+    const lastB = this._backlog[this._backlog.length - 1];
+    if (!lastB || lastB.key !== key) this._backlog.push({ key });
+    if (this._stateTable[key]) { this._currentNode = { scene, index: i, type: arr[i]?.type ?? '' }; this.loadState(this._stateTable[key]); return; }
     this.state.stack = [{ arr, index: 0 }];
     if (i < 0 || i >= arr.length) return;
     this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 }; this.activeTasks = []; this.overlays = [];
@@ -438,8 +442,28 @@ export class Engine {
     this.video = this.video && this.video.mode === 'bg' ? this.video : null;
     if (this.video) this.video.done = false; if (this.pendingChoice) this.pendingChoice.chosen = null;
     this.activeTasks = []; this.paused = true;
-    this._snapshots[key] = this._captureSnapshot(scene, i);
-    this._restoreSnapshot(this._snapshots[key]); // 回放后按快照规整(含 BGM/视频从头/对白全显)
+    this.saveState(scene, i); // 存演算状态(含原始指令 arr)
+    this.loadState(this._stateTable[key]); // 规整后 commit(重放+对白全显+BGM/视频从头)
+  }
+
+  _snapshotKey(scene: string, i: number) { return scene + '_' + i; }
+  saveState(scene: string, i: number) {
+    const arr = this.story.scenes?.[scene]; if (!arr) return null;
+    const cap = this._captureSnapshot(scene, i);
+    cap.arr = arr; cap.scene = scene; cap.index = i;
+    this._stateTable[this._snapshotKey(scene, i)] = cap;
+    return cap;
+  }
+  loadState(snap: any) {
+    this._restoreSnapshot(snap);
+    this._restoreArr(snap);
+    this.paused = true;
+  }
+  _restoreArr(snap: any) { if (snap) this._currentNode = { scene: snap.scene, index: snap.index, type: snap.arr?.[snap.index]?.type ?? '' }; }
+  // 回溯：回到上一个访问过的结点(恢复其状态表)
+  backtrack() {
+    if (this._backlog.length > 1) { this._backlog.pop(); const prev = this._backlog[this._backlog.length - 1]; const s = this._stateTable[prev.key]; if (s) this.loadState(s); return !!s; }
+    return false;
   }
   _captureSnapshot(scene: string, i: number) {
     return { scene, index: i, chars: new Map(this.chars), bg: { ...this.bg }, cg: this.cg, html: this.html,
