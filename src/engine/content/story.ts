@@ -13,65 +13,9 @@
 // 产出「可序列化」的 Story 数据：{ meta, start, scenes, labels, characters }
 // 该数据与 JSON 数据轨等价，可被 runtime 消费。
 
-const D = (type, attrs = {}) => ({ type, ...attrs });
-
-class SceneBuilder {
-  _dirs!: Directive[];
-  constructor(dirs) { this._dirs = dirs; }
-  bg(src, o = {}) { this._dirs.push(D('bg', { src, ...o })); return this; }
-  html(html, o = {}) { this._dirs.push(D('html', { html, ...o })); return this; }
-  video(src, o = {}) { this._dirs.push(D('video', { src, ...o })); return this; }
-  cg(src, o = {}) { this._dirs.push(D('cg', { src, ...o })); return this; }
-  char(id, o = {}) { this._dirs.push(D('char', { id, ...o })); return this; }
-  say(who, text, o = {}) { this._dirs.push(D('say', { who, text, ...o })); return this; }
-  hide(id) { this._dirs.push(D('hide', { id })); return this; }
-  shot(ids) { this._dirs.push(D('shot', { ids })); return this; }
-  voice(src, o = {}) { this._dirs.push(D('voice', { src, ...o })); return this; }
-  bgm(src, o = {}) { this._dirs.push(D('bgm', { src, ...o })); return this; }
-  sfx(src, o = {}) { this._dirs.push(D('sfx', { src, ...o })); return this; }
-  move(target, o = {}) { this._dirs.push(D('move', { target, ...o })); return this; }
-  tween(target, props, o = {}) { this._dirs.push(D('tween', { target, props, ...o })); return this; }
-  effect(name, o = {}) { this._dirs.push(D('effect', { name, ...o })); return this; }
-  fx(block, tags, o = {}) { this._dirs.push(D('fx', { block, tags, ...o })); return this; }
-  camera(o = {}) { this._dirs.push(D('camera', { ...o })); return this; }
-  wait(duration) { this._dirs.push(D('wait', { duration })); return this; }
-  parallel(children) { this._dirs.push(D('parallel', { children })); return this; }
-  choice(options) { this._dirs.push(D('choice', { options })); return this; }
-  jump(to) { this._dirs.push(D('jump', { to })); return this; }
-  label(name) { this._dirs.push(D('label', { name })); return this; }
-  set(v, o = {}) { this._dirs.push(D('set', { var: v, ...o })); return this; }
-  ifx(cond, then, els) { this._dirs.push(D('if', { cond, then, else: els })); return this; }
-  include(path) { this._dirs.push(D('include', { path })); return this; }
-  control(action, value) { this._dirs.push(D('control', { action, value })); return this; }
-  raw(d) { this._dirs.push(d); return this; }
-}
-
-class StoryBuilder {
-  _data!: Story;
-  constructor(meta) {
-    this._data = { meta: meta || {}, start: '', scenes: {}, labels: {}, characters: {} };
-  }
-  meta(m) { this._data.meta = { ...this._data.meta, ...m }; return this; }
-  start(id) { this._data.start = id; return this; }
-  scene(id, fn) {
-    const dirs = [];
-    fn(new SceneBuilder(dirs));
-    this._data.scenes[id] = dirs;
-    return this;
-  }
-  label(name, sceneId) { this._data.labels[name] = sceneId; return this; }
-  characters(c) { this._data.characters = { ...this._data.characters, ...c }; return this; }
-  build() { return this._data; }
-}
 
 import type { Directive, Story } from '../types/types.js';
 
-export const story = {
-  create(meta) { return new StoryBuilder(meta); },
-  meta(meta) { return new StoryBuilder(meta); },
-};
-
-// 从 JSON（数据轨）装载并归一，校验结构；返回规范 Story
 export function loadStory(data) {
   if (!data) throw new Error('loadStory: no data');
   const scenes = {};
@@ -97,7 +41,3 @@ export function loadStory(data) {
 }
 
 // 便利：把 builder 的结果直接给 runtime
-export function storyToStory(builderOrObj) {
-  if (builderOrObj && typeof builderOrObj.build === 'function') return loadStory(builderOrObj.build());
-  return loadStory(builderOrObj);
-}

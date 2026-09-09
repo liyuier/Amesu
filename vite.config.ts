@@ -1,7 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import { transform } from 'esbuild';
-import { parseAms } from './src/engine/content/ams.ts';
+import { parseAms, irToAms } from './src/engine/content/ams.ts';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -66,10 +65,13 @@ function projectApi(): Plugin {
             let body = ''; req.on('data', (ch) => { body += ch; }); req.on('end', () => {
               try {
                 const data = JSON.parse(body);
-                const f = (data && data.file) || 'demo.json';
+                const scriptMd = fs.readdirSync(path.join(dir, 'scenes')).find((n) => /\.ams\.md$/.test(n));
+                const f = (data && data.file && data.file.endsWith('.ams.md')) ? data.file : (scriptMd || 'demo.json');
                 const target = safeJoin(path.join(dir, 'scenes'), f);
                 if (!target) { res.writeHead(403); res.end('forbidden'); return; }
-                fs.writeFileSync(target, JSON.stringify(data.scene ?? data, null, 2));
+                const st = data.scene ?? data;
+                if (f.endsWith('.ams.md')) { fs.writeFileSync(target, irToAms(st as any)); }
+                else fs.writeFileSync(target, JSON.stringify(st, null, 2));
                 sendJson(res, { ok: true, file: target }); broadcast('reload');
               } catch (e) { res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('save failed: ' + ((e as Error).message)); }
             });
@@ -116,9 +118,7 @@ function projectApi(): Plugin {
             const scenesDir = path.join(dir, 'scenes');
             const md = fs.readdirSync(scenesDir).find((n) => /\.ams\.md$/.test(n));
             if (md) { const st = parseAms(fs.readFileSync(path.join(scenesDir, md), 'utf8')); res.setHeader('Content-Type', 'text/javascript; charset=utf-8'); res.end('export default ' + JSON.stringify(st)); return; }
-            const file = fs.readdirSync(scenesDir).find((n) => /\.ts$|\.js$/.test(n));
-            const out = await transform(fs.readFileSync(path.join(scenesDir, file), 'utf8'), { loader: 'ts', format: 'esm', target: 'es2020' });
-            res.setHeader('Content-Type', 'text/javascript; charset=utf-8'); res.end(out.code); return;
+            res.writeHead(404); res.end('no .ams.md'); return;
           }
           if (p === '/api/asset') {
             const rel = q.get('path') ?? '';

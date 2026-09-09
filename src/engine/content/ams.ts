@@ -70,3 +70,46 @@ export function parseAms(md: string): Story {
   const first = Object.keys(scenes)[0] || start;
   return { meta, start: typeof meta.start === 'string' ? meta.start : (start || first), scenes };
 }
+
+// IR → .ams.md 序列化（编辑器回写用；与 parseAms 互为反转）
+const yamlOf = (d: Record<string, unknown>): string => {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(d)) {
+    if (v === undefined) continue;
+    if (Array.isArray(v)) parts.push(`${k}: [${v.map((x) => JSON.stringify(String(x))).join(', ')}]`);
+    else if (typeof v === 'object') parts.push(`${k}: ${JSON.stringify(v)}`);
+    else parts.push(`${k}: ${v}`);
+  }
+  return parts.join('\n');
+};
+const escapeMd = (t: string) => t.replace(/`/g, '\\`').replace(/^@/, '\\@');
+
+export function irToAms(story: { meta?: Record<string, unknown>; start: string; scenes: Record<string, D[]> }): string {
+  const out: string[] = [];
+  const m = story.meta || {};
+  if (Object.keys(m).length) { out.push('---', ...Object.entries(m).map(([k, v]) => `${k}: ${v}`), '---', ''); }
+  for (const [name, arr] of Object.entries(story.scenes || {})) {
+    out.push(`## ${name}`, '');
+    for (let i = 0; i < arr.length; i++) {
+      const d = arr[i]; if (!d) continue;
+      const next = arr[i + 1];
+      if (d.type === 'say') {
+        if (!d.who) { out.push(`> ${escapeMd(String(d.text || ''))}`, ''); continue; }
+        out.push(`@${d.who}`, '```', String(d.text || ''), '```', ''); continue;
+      }
+      if (d.type === 'char') {
+        const st = d.status ? d.status : (d.expr ? String(d.expr) : '');
+        out.push(`@${d.id}${st ? '(' + st + ')' : ''}`);
+        if (next && next.type === 'say' && next.who === d.id) { out.push('```', String(next.text || ''), '```', ''); i++; }
+        else out.push('');
+        continue;
+      }
+      if (d.type === 'hide') { out.push(`@${d.id}(hide)`, ''); continue; }
+      if (d.type === 'choice') { out.push('*choice*', ...(Array.isArray(d.options) ? d.options.map((o: { text: string; jump?: string }) => `- [${o.text}](${o.jump || ''})`) : []), ''); continue; }
+      const known = ['bg','cg','bgm','sfx','voice','video','shot','effect','camera','wait','move','tween','jump','set','if','control','label','html','raw'];
+      if (known.includes(d.type)) { out.push('```' + d.type, yamlOf({ ...d }), '```', ''); continue; }
+      out.push('```' + d.type, yamlOf({ ...d }), '```', '');
+    }
+  }
+  return out.join('\n');
+}

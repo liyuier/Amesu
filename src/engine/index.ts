@@ -13,10 +13,11 @@
 // 对应 doc/02-API参考.md 的导出清单。
 
 export { createEngine } from './core/engine.js';
-export { story, loadStory, storyToStory } from './content/story.js';
+export { loadStory } from './content/story.js';
 export { Easing, clamp, lerp } from './platform/util.js';
 export { AudioManager } from './platform/audio.js';
 export { presets } from './presets.js';
+export { parseAms, irToAms } from './content/ams.js';
 export { DEFAULT_CONFIG, resolveTheme, themes, DEFAULT_THEME, mergeTheme, type ThemeRef } from './theme/index.js';
 export type { AmesuConfig, AmesuFonts, AmesuColors, AmesuLayout, AmesuParticle, AmesuPlaceholder, AmesuAssets, AmesuDefaults } from './theme/index.js';
 export type { Engine } from './core/engine.js';
