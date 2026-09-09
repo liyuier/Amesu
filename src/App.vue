@@ -213,7 +213,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
               <Player v-if="state" :key="state.episode" :state="state" :theme="engine?.config" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" @video-ended="engine?.markVideoDone()" />
             </div>
             </div>
-            <div class="ed-viewbar"><Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" :speed="state?.speed" /></div>
+            <div class="ed-viewbar"><Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" :speed="state?.speed" /><button class="tb ed-reload" title="手动重载项目(重新读取场景文件)" @click="openProject(name)">↻ 重载</button></div>
           </div>
           <div v-if="selNode != null" class="ed-main-split" @mousedown="startPVDrag"></div>
           <div v-if="selNode != null" class="ed-main-right" :style="{ width: scW + 'px' }">
