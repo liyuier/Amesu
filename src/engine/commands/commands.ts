@@ -286,13 +286,13 @@ export const commands = {
   _taskVideo(this: Engine, d) {
     const mode = (d.mode as string) === 'bg' ? 'bg' : 'cg';
     this.video = { src: (d.src as string) || '', skip: !!d.skip, done: false, mode };
-    if (mode === 'cg') { this._bgmForResume = this._bgmSrc; this.audio.stopBGM(); this._bgmSrc = null; } // CG 封面：停 BGM，让视频原声播放
+    if (mode === 'cg') { this.audio.pauseBGM(); } // CG 封面：暂停 BGM(留位置)，让视频原声播放，结束从位置续播
     const task = {
       kind: 'video', start: this.time, forced: false,
       isDone: () => mode === 'bg' ? true : (!!this.video?.done || !!this.video?.skip || !!task.forced),
       tick: () => {},
       complete: () => {
-        if (mode === 'cg') { if (this.video?.done || this.video?.skip) this.video = null; if (this._bgmForResume) { this._applyBGM({ src: this._bgmForResume, volume: this._bgmVol }); this._bgmForResume = null; } }
+        if (mode === 'cg') { if (this.video?.done || this.video?.skip) this.video = null; this.audio.resumeBGM(); } // 从暂停位置续播 BGM
       },
     };
     return task;

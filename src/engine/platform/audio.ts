@@ -15,6 +15,9 @@
 export class AudioManager {
   ctx!: AudioContext | null;
   bgmNode!: AudioBufferSourceNode | null;
+  bgmBuffer: AudioBuffer | null = null;
+  bgmStartTime = 0;
+  bgmPos = 0;
   bgmGain!: GainNode | null;
   master!: GainNode | null;
   volume = 1;
@@ -75,8 +78,7 @@ export class AudioManager {
     src.connect(gain);
     this._pipe(gain);
     src.start();
-    this.bgmNode = src;
-    this.bgmGain = gain;
+    this.bgmNode = src; this.bgmGain = gain; this.bgmBuffer = buffer; this.bgmStartTime = ctx.currentTime;
   }
 
   stopBGM(fade = 400) {
@@ -85,7 +87,27 @@ export class AudioManager {
     old.gain.setValueAtTime(old.gain.value, ctx.currentTime);
     old.gain.linearRampToValueAtTime(0, ctx.currentTime + fade / 1000);
     setTimeout(() => { try { oldSrc.stop(); } catch (e) { /* */ } }, fade + 60);
+    this.bgmNode = null; this.bgmGain = null; this.bgmPos = 0;
+  }
+  // 暂停 BGM(保留位置)，resumeBGM 从位置继续(而非重头)——用于视频CG 时让出原声
+  pauseBGM(fade = 300) {
+    if (!this.bgmGain || !this.ctx || !this.bgmBuffer) return;
+    const ctx = this.ctx, old = this.bgmGain, oldSrc = this.bgmNode;
+    const dur = this.bgmBuffer.duration || 1;
+    this.bgmPos = ((ctx.currentTime - this.bgmStartTime) % dur + dur) % dur;
+    old.gain.linearRampToValueAtTime(0, ctx.currentTime + fade / 1000);
+    setTimeout(() => { try { oldSrc.stop(); } catch (e) { /* */ } }, fade + 60);
     this.bgmNode = null; this.bgmGain = null;
+  }
+  // 从 bgmPos 处继续播放 BGM
+  resumeBGM(fade = 300) {
+    if (!this.bgmBuffer || !this.ctx) return;
+    const ctx = this.ctx;
+    const src = ctx.createBufferSource(); src.buffer = this.bgmBuffer; src.loop = true;
+    const gain = ctx.createGain(); gain.gain.value = 0; gain.gain.linearRampToValueAtTime(this.volume, ctx.currentTime + fade / 1000);
+    src.connect(gain); this._pipe(gain);
+    src.start(0, (this.bgmPos || 0) % (this.bgmBuffer.duration || 1));
+    this.bgmNode = src; this.bgmGain = gain; this.bgmStartTime = ctx.currentTime - (this.bgmPos || 0);
   }
 
   playSFX(buffer, { volume = 0.7, fade = 60, at = 0 } = {}) {
