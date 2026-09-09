@@ -227,7 +227,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
         <section class="ed-bottom" :style="{ height: bottomHeight + 'px' }">
           <div class="ed-bottom-title">画布 · 当前场景（拖拽改序 / 点结点编辑 / 连线分支；橙色=当前步）</div>
           <div class="ed-bottom-body">
-            <StoryCanvas v-if="state" :story="(loaded?.project?.scripts as any) ?? null" :scene-dirs="sceneDirs" :scene-name="state?.scene || ''" :current-scene="state?.scene || ''" :current-index="state?.index" :scene-idx="(state as any)?.index" :selected="selNode" @save="handleSceneSave" @select="(i: number) => { selNode = i; engine?.seekSceneIndex(i); }" />
+            <StoryCanvas v-if="state" :story="(loaded?.project?.scripts as any) ?? null" :scene-dirs="sceneDirs" :scene-name="state?.scene || ''" :current-scene="state?.scene || ''" :current-index="state?.index" :scene-idx="(state as any)?.index" :current-say="(state as any)?.say" :selected="selNode" @save="handleSceneSave" @select="(i: number) => { selNode = i; engine?.seekSceneIndex(i); }" />
           </div>
         </section>
       </div>

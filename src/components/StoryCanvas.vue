@@ -8,7 +8,8 @@ mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'dark', 
 
 type D = { type: string; [k: string]: unknown };
 type Story = { scenes?: Record<string, D[]> };
-const props = defineProps<{ story?: Story | null; sceneDirs?: D[]; sceneName: string; currentScene?: string; currentIndex?: number; sceneIdx?: number; selected?: number | null }>();
+type Say = { who: string; text: string; dirIndex?: number | null } | null;
+const props = defineProps<{ story?: Story | null; sceneDirs?: D[]; sceneName: string; currentScene?: string; currentIndex?: number; sceneIdx?: number; selected?: number | null; currentSay?: Say }>();
 const emit = defineEmits<{ save: [dirs: D[]]; select: [i: number] }>();
 
 const wrap = ref<HTMLElement | null>(null);
@@ -55,7 +56,11 @@ async function renderGraph() {
 }
 function bindNodes() {
   if (!wrap.value) return;
-  const cur = `${props.currentScene}_${props.currentIndex}`;
+  // 当前步=正在显示的那条对白(匹配 who+text)所在结点；否则回退到 currentIndex
+  let hi = String(props.currentIndex ?? 0);
+  const say = props.currentSay; const arr = (props.story?.scenes?.[props.currentScene || ''] || []) as D[];
+  if (say && say.who) { const idx = arr.findIndex((x) => (x.type === 'say' || x.type === 'text') && x.who === say.who && x.text === say.text); if (idx >= 0) hi = String(idx); }
+  const cur = `${props.currentScene}_${hi}`;
   wrap.value.querySelectorAll<SVGGElement>('.node').forEach((n, i) => {
     n.style.cursor = 'pointer';
     const id = (n.getAttribute('id') || '') + ' ' + (n.getAttribute('data-id') || '');

@@ -278,7 +278,7 @@ export class Engine {
     while (guard++ < 10000) {
       if (this.activeTasks.length) return; // 被阻塞
       if (this.ended) return;
-      const d = this._peekDir();
+      const d = this._peekDir(); this._curDirIdx = (this.state.stack[this.state.stack.length-1]).index;
       if (!d) { this.ended = true; this._emit('ended', this.time); return; }
 
       switch (d.type) {
@@ -479,7 +479,7 @@ export class Engine {
       } : null,
       sprites,
       episode: this.episode,
-      say: this.lastSay ? { who: this.lastSay.who, text: this.lastSay.text, reveal: this.lastSay.reveal, id: this.lastSay.id } : null,
+      say: this.lastSay ? { who: this.lastSay.who, text: this.lastSay.text, reveal: this.lastSay.reveal, id: this.lastSay.id, dirIndex: this.lastSay.dirIndex ?? null } : null,
       choices: this.pendingChoice ? { chosen: this.pendingChoice.chosen, options: this.pendingChoice.options } : null,
       effects: this.overlays.map((o, idx) => ({ key: String(idx), type: (o.effectName ? o.type + ':' + o.effectName : o.type), start: o.start, duration: o.duration, params: {} })),
       vars: this.state.vars,
