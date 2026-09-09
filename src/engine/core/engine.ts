@@ -160,20 +160,19 @@ export class Engine {
   }
 
   async _loadImage(src, kind) {
-    if (this._imgCache.has(src)) return this._imgCache.get(src);
+    // 以【解析后的 URL】为缓存键；仅缓存成功；加载失败重试(偶现瞬态失败不再永久缓存 null)
     const url = this._resolve(src);
-    const p = new Promise<HTMLImageElement | null>((resolve) => {
+    if (this._imgCache.has(url)) return this._imgCache.get(url);
+    return await new Promise<HTMLImageElement | null>((resolve) => {
+      let attempts = 0; const MAX = 3;
       const img = new Image();
-      img.onload = () => {
-        if (kind === 'bg') resolve(img);
-        else resolve(img);
+      const attempt = () => {
+        img.onload = () => { this._imgCache.set(url, img); resolve(img); };
+        img.onerror = () => { attempts++; if (attempts < MAX) setTimeout(() => { img.src = url + (url.includes('?') ? '&' : '?') + 'retry=' + attempts; }, 220); else { resolve(null); } };
+        img.src = url;
       };
-      img.onerror = () => resolve(null);
-      img.src = url;
+      attempt();
     });
-    const img = await p;
-    this._imgCache.set(src, img); // null => fallback to placeholder
-    return img;
   }
 
   // 背景 drawable：真实图；缺失时回退到主题声明的默认素材（如 demo 提供的内容），再缺则用 colors.fallbackBg
