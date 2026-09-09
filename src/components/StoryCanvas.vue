@@ -62,9 +62,9 @@ function bindNodes() {
     n.onclick = (ev) => { ev.stopPropagation(); emit('select', i); };
     const r = n.querySelector('rect');
     if (cur && (id.includes('-' + cur + '-') || id === cur)) { // 边界匹配, 避免 scene_dusk_2 误中 scene_dusk_20
-      if (r) r.setAttribute('fill', '#e08a5a'); const tx = n.querySelector('text'); if (tx) tx.setAttribute('fill', '#fff');
+      if (r) r.style.fill = '#e08a5a'; const tx = n.querySelector('text'); if (tx) tx.style.fill = '#fff';
     }
-    else if (r && i !== props.selected) r.setAttribute('fill', '#34343f');
+    else if (r && i !== props.selected) r.style.fill = ''; // 清空内联 => 回到 CSS 默认
   });
 }
 watch(() => [props.story, props.sceneDirs, props.currentScene, props.currentIndex, props.selected], () => { renderGraph(); }, { immediate: true });
