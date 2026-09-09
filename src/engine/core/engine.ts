@@ -52,7 +52,10 @@ export class Engine {
   _cgFade = 0;
   uiFx: { block: string; tags: string[]; start: number; dur: number } | null = null;
   html: string | null = null;
-  video: { src: string; skip: boolean } | null = null;
+  video: { src: string; skip: boolean; mode?: 'bg'|'cg' } | null = null;
+  _bgmSrc: string | null = null;
+  _bgmVol = 0.6;
+  _bgmForResume: string | null = null;
   bg!: BgRuntime;
   camera!: CameraRuntime;
   lastSay!: SayRuntime | null;

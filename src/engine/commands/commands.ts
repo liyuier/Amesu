@@ -286,11 +286,14 @@ export const commands = {
   _taskVideo(this: Engine, d) {
     const mode = (d.mode as string) === 'bg' ? 'bg' : 'cg';
     this.video = { src: (d.src as string) || '', skip: !!d.skip, done: false, mode };
+    if (mode === 'cg') { this._bgmForResume = this._bgmSrc; this.audio.stopBGM(); this._bgmSrc = null; } // CG 封面：停 BGM，让视频原声播放
     const task = {
       kind: 'video', start: this.time, forced: false,
       isDone: () => mode === 'bg' ? true : (!!this.video?.done || !!this.video?.skip || !!task.forced),
       tick: () => {},
-      complete: () => { if (mode === 'bg') return; if (this.video?.done || this.video?.skip) this.video = null; },
+      complete: () => {
+        if (mode === 'cg') { if (this.video?.done || this.video?.skip) this.video = null; if (this._bgmForResume) { this._applyBGM({ src: this._bgmForResume, volume: this._bgmVol }); this._bgmForResume = null; } }
+      },
     };
     return task;
   },
@@ -300,10 +303,11 @@ export const commands = {
   }
 ,
   _applyBGM(this: Engine, d) {
+    const src = (d.src as string) || '';
+    if (!src || src === 'none') { this.audio.stopBGM(); this._bgmSrc = null; return; } // 停止/切换
+    this._bgmSrc = src; this._bgmVol = (d.volume as number) ?? 0.6;
     if (!this.audio.ctx && !this.audio.ensure) return;
-    this._audio('bgm', d.src).then((buf) => {
-      this.audio.setBGM(buf, { volume: d.volume ?? 0.6, fade: toMs(d.fade) || 800, loop: d.loop !== false });
-    });
+    this._audio('bgm', src).then((buf) => { this.audio.setBGM(buf, { volume: this._bgmVol, fade: toMs(d.fade) || 800, loop: d.loop !== false }); });
   }
 ,
   _applySFX(this: Engine, d) {
