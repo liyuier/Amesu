@@ -13,7 +13,7 @@ import Inspector from './components/Inspector.vue';
 import DirectoryPicker from './components/DirectoryPicker.vue';
 import StoryCanvas from './components/StoryCanvas.vue';
 import FsTree from './components/FsTree.vue';
-import { Image as ImageIcon, FolderOpen, Search } from 'lucide-vue-next';
+import { Image as ImageIcon, FolderOpen, Search, RefreshCw } from 'lucide-vue-next';
 import 'video.js/dist/video-js.css';
 
 import { useProject } from './composables/useProject.ts';
@@ -213,7 +213,7 @@ onBeforeUnmount(() => { ro?.disconnect(); cancelAnimationFrame(raf); });
               <Player v-if="state" :key="state.episode" :state="state" :theme="engine?.config" @advance="engine?.handleClick(0,0)" @choose="(i: number) => engine?.choose(i)" @video-ended="engine?.markVideoDone()" />
             </div>
             </div>
-            <div class="ed-viewbar"><Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" :speed="state?.speed" /><button class="tb ed-reload" title="手动重载项目(重新读取场景文件)" @click="openProject(name)">↻ 重载</button></div>
+            <div class="ed-viewbar"><Toolbar :engine="engine" :paused="state?.paused ?? false" :muted="state?.audio?.muted ?? false" :speed="state?.speed" /><button class="tb ed-reload" title="手动重载项目(重新读取场景文件)" @click="openProject(name)"><RefreshCw :size="15" /><span class="tb-label">重载</span></button></div>
           </div>
           <div v-if="selNode != null" class="ed-main-split" @mousedown="startPVDrag"></div>
           <div v-if="selNode != null" class="ed-main-right" :style="{ width: scW + 'px' }">

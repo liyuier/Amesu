@@ -483,7 +483,7 @@ export class Engine {
       choices: this.pendingChoice ? { chosen: this.pendingChoice.chosen, options: this.pendingChoice.options } : null,
       effects: this.overlays.map((o, idx) => ({ key: String(idx), type: (o.effectName ? o.type + ':' + o.effectName : o.type), start: o.start, duration: o.duration, params: {} })),
       vars: this.state.vars,
-      time: this.time, scene, ended: this.ended, mode: this.mode, speed: this.speed, paused: this.paused,
+      time: this.time, scene, index: s ? s.index : null, ended: this.ended, mode: this.mode, speed: this.speed, paused: this.paused,
     };
   }
 

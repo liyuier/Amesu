@@ -61,7 +61,9 @@ function bindNodes() {
     const id = (n.getAttribute('id') || '') + ' ' + (n.getAttribute('data-id') || '');
     n.onclick = (ev) => { ev.stopPropagation(); emit('select', i); };
     const r = n.querySelector('rect');
-    if (id.includes(cur)) { if (r) r.setAttribute('fill', '#e08a5a'); const tx = n.querySelector('text'); if (tx) tx.setAttribute('fill', '#fff'); }
+    if (cur && (id.includes('-' + cur + '-') || id === cur)) { // 边界匹配, 避免 scene_dusk_2 误中 scene_dusk_20
+      if (r) r.setAttribute('fill', '#e08a5a'); const tx = n.querySelector('text'); if (tx) tx.setAttribute('fill', '#fff');
+    }
     else if (r && i !== props.selected) r.setAttribute('fill', '#34343f');
   });
 }
