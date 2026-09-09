@@ -105,7 +105,7 @@ function projectApi(): Plugin {
             const scriptFile = scenes.find((n) => /\.ts$|\.js$|\.ams\.md$/.test(n));
             if (scriptFile) {
               const qs = new URLSearchParams({ path: rel });
-              return sendJson(res, { path: rel, track: 'script', meta: config, storyModule: '/api/story?' + qs.toString(), assetBase: '/api/asset?path=' + encodeURIComponent(rel) + '&file=' });
+              return sendJson(res, { path: rel, track: 'script', meta: config, storyModule: '/api/story?' + qs.toString() + '&t=' + Date.now(), assetBase: '/api/asset?path=' + encodeURIComponent(rel) + '&file=' });
             }
             const jsonFile = scenes.find((n) => n.endsWith('.json')) || 'demo.json';
             const story = JSON.parse(fs.readFileSync(path.join(scenesDir, jsonFile), 'utf8'));
