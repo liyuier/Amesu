@@ -57,6 +57,7 @@ export class Engine {
   _bgmVol = 0.6;
   _bgmForResume: string | null = null;
   _currentNode: { scene: string; index: number; type: string } | null = null;
+  _snapshots: Record<string, any> = {};
   bg!: BgRuntime;
   camera!: CameraRuntime;
   lastSay!: SayRuntime | null;
@@ -422,20 +423,40 @@ export class Engine {
   setMode(mode) { this.mode = mode; }
   // 热重载：替换剧本（编辑器“应用”/dev-server 场景变化时调用）
   // 跳转到当前场景的第 i 条指令（重新应用 0..i，供“点结点→预览实时跳转”）
+  // 每结点快照：命中缓存→恢复快照；否则回放并缓存；恢复时时间属性(BGM/循环背景视频)从头播
   seekSceneIndex(scene: string, i: number) {
     const arr = this.story.scenes?.[scene]; if (!arr) return;
-    this.state.stack = [{ arr, index: 0 }]; // 重置到目标场景(弹掉分支), 从该场景的起点重放
+    const key = scene + '_' + i;
+    if (this._snapshots[key]) { this._restoreSnapshot(this._snapshots[key]); return; }
+    this.state.stack = [{ arr, index: 0 }];
     if (i < 0 || i >= arr.length) return;
     this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 }; this.activeTasks = []; this.overlays = [];
-    this.lastSay = null; this.pendingChoice = null; this.cg = null; this.html = null; this.video = null; this.uiFx = {};
+    this.lastSay = null; this.pendingChoice = null; this.cg = null; this.html = null; this.video = null; this.camera = null; this.uiFx = {};
     const top = this.state.stack[this.state.stack.length - 1];
     for (let j = 0; j <= i; j++) { top.index = j; const d = arr[j]; if (d) { this._spawn(d); if (this._isVisual(d.type)) this._currentNode = { scene, index: j, type: d.type as string }; } }
-    this.bg.mix = 1; // 背景立即完整显示（否则停在淡入 mix=0 → 黑）
-    this.video = this.video && this.video.mode === 'bg' ? this.video : null; // 保留背景循环视频；跳到/越过 CG 视频步时清除(一次性事件)
+    this.bg.mix = 1;
+    this.video = this.video && this.video.mode === 'bg' ? this.video : null;
     if (this.video) this.video.done = false; if (this.pendingChoice) this.pendingChoice.chosen = null;
-    this.activeTasks = []; // 不留阻塞任务，防止引擎 _update 再推进导致 index 回退
-    this.paused = true; // 跳到目标结点后暂停预览，先展示该步状态；点击画面恢复+推进
+    this.activeTasks = []; this.paused = true;
+    this._snapshots[key] = this._captureSnapshot(scene, i);
+    this._restoreSnapshot(this._snapshots[key]); // 回放后按快照规整(含 BGM/视频从头/对白全显)
   }
+  _captureSnapshot(scene: string, i: number) {
+    return { scene, index: i, chars: new Map(this.chars), bg: { ...this.bg }, cg: this.cg, html: this.html,
+      video: this.video ? { ...this.video } : null, lastSay: this.lastSay ? { ...this.lastSay } : null,
+      pendingChoice: this.pendingChoice ? { ...this.pendingChoice, chosen: null } : null,
+      fade: this.fade ? { ...this.fade } : null, camera: this.camera, uiFx: this.uiFx, bgmSrc: this._bgmSrc, bgmVol: this._bgmVol };
+  }
+  _restoreSnapshot(snap: any) {
+    this.state.stack = [{ arr: this.story.scenes?.[snap.scene] || [], index: snap.index }];
+    this.chars = new Map(snap.chars); this.bg = { ...snap.bg };
+    this.cg = snap.cg || null; this.html = snap.html; this.video = snap.video && snap.video.mode === 'bg' ? { ...snap.video, done: false } : null;
+    this.lastSay = snap.lastSay ? { ...snap.lastSay, reveal: snap.lastSay.text.length } : null; // 对白全显
+    this.pendingChoice = snap.pendingChoice || null; this.fade = snap.fade || null; this.camera = snap.camera || null; this.uiFx = snap.uiFx || {};
+    this.activeTasks = []; this.overlays = []; this.paused = true;
+    if (snap.bgmSrc) this._applyBGM({ src: snap.bgmSrc, loop: true, volume: snap.bgmVol }); else this.audio.stopBGM();
+  }
+
   setScripts(scripts: Story | Record<string, unknown>) {
     this.story = loadStory(scripts);
     this.restart();
