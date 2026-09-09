@@ -210,7 +210,14 @@ export const commands = {
     });
   }
 ,
+  // status → 预设(tmeme 全局 + 角色覆盖)：无具体位置数字，按预设动画应用
+  _statusPreset(this: Engine, id: string, status: string) {
+    const g = (((this.config as any).effect?.status) || {})[status] || {};
+    const c = (((this.characters as any)?.[id]?.status) || {})[status] || {};
+    return { ...g, ...c };
+  },
   _applyCharStart(this: Engine, d) {
+    if (d.status) { const pre = this._statusPreset(d.id, d.status); if (pre.hide) { this._applyHide({ id: d.id }); return; } d = { ...d, ...pre }; }
     const cfg = this.characters[d.id as string] || {};
     const color = d.color || cfg.color || this.config.defaults.charColor;
     const frac = this._xPos(d.at);

@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { transform } from 'esbuild';
+import { parseAms } from './src/engine/content/ams.ts';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -99,7 +100,7 @@ function projectApi(): Plugin {
             const config = JSON.parse(fs.readFileSync(cfgFile, 'utf8'));
             const scenesDir = path.join(dir, 'scenes');
             const scenes = fs.existsSync(scenesDir) ? fs.readdirSync(scenesDir) : [];
-            const scriptFile = scenes.find((n) => /\.ts$|\.js$/.test(n));
+            const scriptFile = scenes.find((n) => /\.ts$|\.js$|\.ams\.md$/.test(n));
             if (scriptFile) {
               const qs = new URLSearchParams({ path: rel });
               return sendJson(res, { path: rel, track: 'script', meta: config, storyModule: '/api/story?' + qs.toString(), assetBase: '/api/asset?path=' + encodeURIComponent(rel) + '&file=' });
@@ -113,6 +114,8 @@ function projectApi(): Plugin {
             const dir = safeJoin(BASE, rel);
             if (!dir) { res.writeHead(403); res.end('forbidden'); return; }
             const scenesDir = path.join(dir, 'scenes');
+            const md = fs.readdirSync(scenesDir).find((n) => /\.ams\.md$/.test(n));
+            if (md) { const st = parseAms(fs.readFileSync(path.join(scenesDir, md), 'utf8')); res.setHeader('Content-Type', 'text/javascript; charset=utf-8'); res.end('export default ' + JSON.stringify(st)); return; }
             const file = fs.readdirSync(scenesDir).find((n) => /\.ts$|\.js$/.test(n));
             const out = await transform(fs.readFileSync(path.join(scenesDir, file), 'utf8'), { loader: 'ts', format: 'esm', target: 'es2020' });
             res.setHeader('Content-Type', 'text/javascript; charset=utf-8'); res.end(out.code); return;
