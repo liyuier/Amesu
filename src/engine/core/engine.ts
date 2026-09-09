@@ -56,6 +56,7 @@ export class Engine {
   _bgmSrc: string | null = null;
   _bgmVol = 0.6;
   _bgmForResume: string | null = null;
+  _currentNode: { scene: string; index: number; type: string } | null = null;
   bg!: BgRuntime;
   camera!: CameraRuntime;
   lastSay!: SayRuntime | null;
@@ -263,6 +264,8 @@ export class Engine {
     }
     return null;
   }
+  _isVisual(type: string) { return ['say','choice','bg','char','shot','video','cg','camera','effect','fx','html'].includes(type); }
+  _sceneName() { const s = this.state.stack[this.state.stack.length - 1]; return s ? (Object.keys(this.story.scenes).find((k) => this.story.scenes[k] === s.arr) ?? null) : null; }
   _advanceIndex() {
     const top = this.state.stack[this.state.stack.length - 1];
     if (top) top.index++;
@@ -280,6 +283,7 @@ export class Engine {
       if (this.ended) return;
       const d = this._peekDir(); this._curDirIdx = (this.state.stack[this.state.stack.length-1]).index;
       if (!d) { this.ended = true; this._emit('ended', this.time); return; }
+      if (this._isVisual(d.type)) this._currentNode = { scene: this._sceneName(), index: this._curDirIdx, type: d.type as string }; // 维护“当前结点”状态
 
       switch (d.type) {
         case 'label': this._advanceIndex(); break;
@@ -425,7 +429,7 @@ export class Engine {
     this.chars.clear(); this.bg = { cur: null, prev: null, mix: 1 }; this.activeTasks = []; this.overlays = [];
     this.lastSay = null; this.pendingChoice = null; this.cg = null; this.html = null; this.video = null; this.uiFx = {};
     const top = this.state.stack[this.state.stack.length - 1];
-    for (let j = 0; j <= i; j++) { top.index = j; const d = arr[j]; if (d) { this._spawn(d); } }
+    for (let j = 0; j <= i; j++) { top.index = j; const d = arr[j]; if (d) { this._spawn(d); if (this._isVisual(d.type)) this._currentNode = { scene, index: j, type: d.type as string }; } }
     this.bg.mix = 1; // 背景立即完整显示（否则停在淡入 mix=0 → 黑）
     this.video = this.video && this.video.mode === 'bg' ? this.video : null; // 保留背景循环视频；跳到/越过 CG 视频步时清除(一次性事件)
     if (this.video) this.video.done = false; if (this.pendingChoice) this.pendingChoice.chosen = null;
@@ -487,7 +491,7 @@ export class Engine {
       choices: this.pendingChoice ? { chosen: this.pendingChoice.chosen, options: this.pendingChoice.options } : null,
       effects: this.overlays.map((o, idx) => ({ key: String(idx), type: (o.effectName ? o.type + ':' + o.effectName : o.type), start: o.start, duration: o.duration, params: {} })),
       vars: this.state.vars,
-      time: this.time, scene, index: s ? s.index : null, curType: s ? (s.arr[s.index]?.type ?? null) : null, ended: this.ended, mode: this.mode, speed: this.speed, paused: this.paused,
+      time: this.time, scene, index: s ? s.index : null, curType: s ? (s.arr[s.index]?.type ?? null) : null, currentNode: this._currentNode, ended: this.ended, mode: this.mode, speed: this.speed, paused: this.paused,
     };
   }
 

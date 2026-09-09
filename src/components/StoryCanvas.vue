@@ -9,7 +9,7 @@ mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'dark', 
 type D = { type: string; [k: string]: unknown };
 type Story = { scenes?: Record<string, D[]> };
 type Say = { who: string; text: string; dirIndex?: number | null } | null;
-const props = defineProps<{ story?: Story | null; sceneDirs?: D[]; sceneName: string; currentScene?: string; currentIndex?: number; sceneIdx?: number; selected?: number | null; currentSay?: Say; currentType?: string }>();
+const props = defineProps<{ story?: Story | null; sceneDirs?: D[]; sceneName: string; currentScene?: string; currentIndex?: number; sceneIdx?: number; selected?: number | null; currentSay?: Say; currentType?: string; currentNode?: { scene: string; index: number; type: string } | null }>();
 const emit = defineEmits<{ save: [dirs: D[]]; select: [i: number] }>();
 
 const wrap = ref<HTMLElement | null>(null);
@@ -57,17 +57,9 @@ async function renderGraph() {
 function bindNodes() {
   if (!wrap.value) return;
   // 当前步=正在显示的那条对白(匹配 who+text)所在结点；否则回退到 currentIndex
-  const idxNum = Number(props.currentIndex ?? 0);
-  const curType = props.currentType; const say = props.currentSay;
-  const arr = (props.story?.scenes?.[props.currentScene || ''] || []) as D[];
-  let hi: string;
-  if (curType === 'say' && say) { // 当前是对白 -> 高亮该对白句(与预览一致)
-    const idx = arr.findIndex((x) => x.type === 'say' && String((x as any).who || '') === String((say as any).who || '') && String((x as any).text || '') === String((say as any).text || '')); hi = idx >= 0 ? String(idx) : String(idxNum);
-  } else { // 非对白 -> 阻断型(video/cg/choice/bg/wait)用当前, 跳跃型(char/shot)用上一个可见
-    const block = ['say', 'bg', 'choice', 'wait', 'video', 'cg'].includes(curType as string);
-    hi = String(block ? idxNum : Math.max(0, idxNum - 1));
-  }
-  const cur = `${props.currentScene}_${hi}`;
+  // 引擎维护的权威“当前结点”(scene+index+type)，组件直接消费，不再反推
+  const cn = props.currentNode;
+  const cur = cn ? `${cn.scene}_${cn.index}` : `${props.currentScene}_${props.currentIndex ?? 0}`;
   wrap.value.querySelectorAll<SVGGElement>('.node').forEach((n, i) => {
     n.style.cursor = 'pointer';
     const id = (n.getAttribute('id') || '') + ' ' + (n.getAttribute('data-id') || '');
