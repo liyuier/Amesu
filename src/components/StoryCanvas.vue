@@ -57,9 +57,12 @@ async function renderGraph() {
 function bindNodes() {
   if (!wrap.value) return;
   // 当前步=正在显示的那条对白(匹配 who+text)所在结点；否则回退到 currentIndex
-  const idxNum = Number(props.currentIndex ?? 0);
-  const block = ['say', 'bg', 'choice', 'wait'].includes(props.currentType as string);
-  let hi = String(block ? idxNum : Math.max(0, idxNum - 1)); // 阻断型=当前; 跳跃型=上一个可见
+  // 首选：正在显示的那条对白(匹配 who+text)所在结点 —— 始终与预览一致
+  let hi = '';
+  const say = props.currentSay; const arr = (props.story?.scenes?.[props.currentScene || ''] || []) as D[];
+  if (say) { const idx = arr.findIndex((x) => x.type === 'say' && String((x as any).who || '') === String((say as any).who || '') && String((x as any).text || '') === String((say as any).text || '')); if (idx >= 0) hi = String(idx); }
+  // 回退：阻断型用 index, 跳跃型用 index-1
+  if (!hi) { const idxNum = Number(props.currentIndex ?? 0); const block = ['say', 'bg', 'choice', 'wait'].includes(props.currentType as string); hi = String(block ? idxNum : Math.max(0, idxNum - 1)); }
   const cur = `${props.currentScene}_${hi}`;
   wrap.value.querySelectorAll<SVGGElement>('.node').forEach((n, i) => {
     n.style.cursor = 'pointer';
